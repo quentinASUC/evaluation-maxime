@@ -1,0 +1,1359 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Évaluation SEA — Maxime Sion · Boulanger</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+  :root {
+    --bg:#F7F6F3;--surface:#FFFFFF;--surface2:#F2F1EE;--border:#E3E1DB;--border2:#D0CEC7;
+    --text:#1C1B18;--text2:#6B6860;--text3:#9E9C96;
+    --accent:#1B4FD8;--accent-light:#EBF0FD;
+    --warn:#C47B1A;--warn-light:#FDF3E3;
+    --danger:#C0392B;--danger-light:#FDECEA;
+    --green:#3B6D11;--green-light:#EAF3DE;
+    --mono:'JetBrains Mono',monospace;--sans:'Inter',system-ui,sans-serif;
+    --radius:8px;--radius-sm:5px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;}
+  .app-header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;gap:12px;flex-wrap:wrap;}
+  .header-left{display:flex;align-items:center;gap:12px;}
+  .header-logo{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--border);padding:3px 8px;border-radius:var(--radius-sm);}
+  .header-title{font-size:14px;font-weight:600;}
+  .header-sub{font-size:11px;color:var(--text2);margin-top:1px;}
+  .tab-nav{display:flex;gap:4px;background:var(--surface2);border-radius:var(--radius);padding:3px;}
+  .tab-btn{font-size:12px;font-weight:500;padding:5px 14px;border-radius:6px;border:none;background:transparent;color:var(--text2);cursor:pointer;transition:all .15s;white-space:nowrap;}
+  .tab-btn.active{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.08);}
+  .header-right{display:flex;gap:8px;}
+  .btn{font-size:12px;font-family:var(--sans);font-weight:500;padding:6px 14px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--surface);color:var(--text);cursor:pointer;white-space:nowrap;}
+  .btn:hover{background:var(--surface2);}
+  .btn-primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .btn-primary:hover{background:#1640b8;}
+  .stats-bar{display:flex;background:var(--surface);border-bottom:1px solid var(--border);overflow-x:auto;}
+  .stat-item{flex:1;min-width:90px;padding:10px 16px;border-right:1px solid var(--border);text-align:center;}
+  .stat-item:last-child{border-right:none;}
+  .stat-val{font-size:18px;font-weight:600;font-family:var(--mono);}
+  .stat-label{font-size:10px;color:var(--text3);margin-top:1px;text-transform:uppercase;letter-spacing:.05em;}
+  .progress-track{height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin-bottom:2px;}
+  .progress-fill{height:100%;background:var(--green);border-radius:2px;transition:width .3s;width:0%;}
+  .page{display:none;}.page.active{display:block;}
+
+  /* PLANNING */
+  .filter-bar{padding:10px 24px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--border);background:var(--surface);}
+  .filter-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-right:4px;}
+  .filter-btn{font-size:11px;font-weight:500;padding:4px 12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;}
+  .filter-btn.active{background:var(--text);color:#fff;border-color:var(--text);}
+  .main{padding:20px 24px;max-width:900px;margin:0 auto;}
+
+  /* Séparateur de slot */
+  .slot-sep{display:flex;align-items:center;gap:10px;margin:16px 0 10px;padding:0 2px;}
+  .slot-sep-line{flex:1;height:1px;background:var(--border);}
+  .slot-sep-label{font-size:11px;font-weight:600;font-family:var(--mono);color:var(--text3);white-space:nowrap;background:var(--bg);padding:0 8px;}
+  .slot-sep-time{font-size:11px;color:var(--text3);background:var(--surface2);border:1px solid var(--border);padding:2px 8px;border-radius:20px;white-space:nowrap;}
+
+  .bloc{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px;overflow:hidden;transition:opacity .2s;}
+  .bloc.done{opacity:.55;}.bloc.hidden{display:none;}
+  .bloc-header{display:grid;grid-template-columns:72px 1fr auto;gap:12px;align-items:center;padding:12px 16px;cursor:pointer;user-select:none;}
+  .bloc-header:hover{background:var(--surface2);}
+  .bloc-time{font-family:var(--mono);font-size:13px;font-weight:500;line-height:1.3;}
+  .bloc-time-dur{font-size:10px;color:var(--text3);font-weight:400;margin-top:2px;}
+  .bloc-title-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .bloc-title{font-size:14px;font-weight:600;}
+  .badge{font-size:10px;font-weight:500;padding:2px 7px;border-radius:4px;white-space:nowrap;}
+  .bloc-sub{font-size:11px;color:var(--text2);margin-top:3px;line-height:1.4;}
+  .bloc-controls{display:flex;align-items:center;gap:8px;}
+  .check-btn{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--border2);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10px;color:transparent;transition:all .15s;flex-shrink:0;}
+  .check-btn.checked{background:var(--green);border-color:var(--green);color:white;}
+  .chevron{display:flex;color:var(--text3);transition:transform .2s;}
+  .chevron.open{transform:rotate(180deg);}
+  .bloc-body{display:none;border-top:1px solid var(--border);}
+  .bloc-body.open{display:block;}
+  .body-section{padding:12px 16px;border-bottom:1px solid var(--border);}
+  .body-section:last-child{border-bottom:none;}
+  .section-head{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:8px;}
+  .camp-row{display:flex;align-items:baseline;gap:8px;padding:5px 0;border-bottom:1px dashed var(--border);}
+  .camp-row:last-child{border-bottom:none;}
+  .camp-name{font-size:12px;font-weight:500;flex:1;}
+  .camp-meta{font-size:11px;color:var(--text2);white-space:nowrap;font-family:var(--mono);}
+  .tag{font-size:10px;padding:1px 6px;border-radius:3px;white-space:nowrap;flex-shrink:0;font-weight:500;}
+  .tag-red{background:var(--danger-light);color:var(--danger);}
+  .tag-orange{background:var(--warn-light);color:var(--warn);}
+  .tag-blue{background:var(--accent-light);color:var(--accent);}
+  .q-list{display:flex;flex-direction:column;gap:6px;}
+  .q-row{display:flex;gap:8px;align-items:flex-start;}
+  .q-num{font-family:var(--mono);font-size:10px;color:var(--text3);min-width:18px;padding-top:2px;font-weight:500;}
+  .q-text{font-size:12px;line-height:1.55;flex:1;font-style:italic;}
+  .q-tag{font-size:10px;padding:1px 6px;border-radius:3px;background:var(--surface2);color:var(--text3);white-space:nowrap;margin-top:2px;font-family:var(--mono);}
+  .signal-list{display:flex;flex-direction:column;gap:6px;}
+  .signal-row{display:flex;gap:8px;align-items:flex-start;}
+  .signal-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+  .signal-text{font-size:12px;color:var(--text2);line-height:1.5;flex:1;}
+  .signal-text strong{font-weight:600;color:var(--text);}
+  .obj-box{font-size:12px;line-height:1.6;padding:10px 12px;border-radius:var(--radius-sm);border-left:3px solid;}
+  .obj-eval{background:var(--accent-light);border-color:var(--accent);color:#0D3D6A;}
+  .obj-warn{background:var(--warn-light);border-color:var(--warn);color:#6B3D05;}
+  .obj-break{background:var(--green-light);border-color:var(--green);color:#1E4A09;}
+  .notes-section{padding:10px 16px;background:var(--surface2);}
+  .notes-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;}
+  .notes-section textarea{width:100%;font-size:12px;font-family:var(--sans);resize:vertical;min-height:44px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 10px;color:var(--text);line-height:1.5;}
+  .notes-section textarea:focus{outline:none;border-color:var(--accent);}
+
+  /* RADAR */
+  .radar-page{padding:20px 24px;max-width:960px;margin:0 auto;}
+  .radar-grid{display:grid;grid-template-columns:1fr 300px;gap:24px;align-items:start;}
+  .radar-canvas-wrap{position:relative;width:100%;height:360px;}
+  .radar-legend{display:flex;gap:16px;margin-top:10px;flex-wrap:wrap;}
+  .radar-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);}
+  .radar-legend-dot{width:8px;height:8px;border-radius:50%;}
+  .score-global-box{text-align:center;margin-bottom:16px;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);}
+  .score-big{font-size:36px;font-weight:600;font-family:var(--mono);}
+  .score-sub{font-size:11px;color:var(--text3);margin-top:2px;}
+  .domains-panel{display:flex;flex-direction:column;gap:5px;}
+  .d-row{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;cursor:pointer;}
+  .d-row.active{border-color:var(--border2);}
+  .d-header{display:flex;align-items:center;gap:7px;padding:8px 10px;}
+  .d-color{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  .d-label{font-size:12px;font-weight:500;flex:1;line-height:1.3;}
+  .d-score{font-size:12px;font-weight:500;min-width:28px;text-align:right;color:var(--text3);}
+  .stars{display:flex;gap:2px;}
+  .star{width:15px;height:15px;border:none;background:none;cursor:pointer;font-size:13px;color:var(--text3);line-height:1;padding:0;}
+  .star:hover{transform:scale(1.15);}
+  .star.on{color:#C47B1A;}
+  .d-bar{height:3px;background:var(--border);border-radius:2px;overflow:hidden;}
+  .d-bar-fill{height:100%;border-radius:2px;transition:width .3s;}
+  .d-detail{display:none;border-top:1px solid var(--border);padding:8px 10px;background:var(--surface2);}
+  .d-detail.open{display:block;}
+  .d-detail-head{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:5px;}
+  .d-items{display:flex;flex-direction:column;gap:3px;}
+  .d-item{display:flex;gap:5px;align-items:flex-start;}
+  .d-item-dot{width:4px;height:4px;border-radius:50%;flex-shrink:0;margin-top:5px;}
+  .d-item-txt{font-size:11px;color:var(--text2);line-height:1.4;flex:1;}
+  .d-item-lv{font-size:10px;padding:1px 5px;border-radius:3px;flex-shrink:0;margin-top:1px;}
+  .lv-m{background:var(--green-light);color:var(--green);}
+  .lv-a{background:var(--accent-light);color:var(--accent);}
+  .lv-e{background:#EEEDFE;color:#534AB7;}
+  .lv-c{background:var(--surface2);color:var(--text3);}
+  .lv-na{background:var(--danger-light);color:var(--danger);}
+  .d-item-select{font-size:10px;font-family:var(--sans);font-weight:500;padding:2px 6px;border-radius:3px;border:none;cursor:pointer;flex-shrink:0;margin-top:0px;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath fill='%23999' d='M3 4.5l3 3 3-3z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 4px center;padding-right:18px;}
+  .d-item-select:focus{outline:1px solid var(--accent);}
+  .radar-notes{margin-top:20px;display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .rn-field{display:flex;flex-direction:column;gap:4px;}
+  .rn-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;}
+  .rn-field textarea{font-size:12px;font-family:var(--sans);resize:vertical;min-height:60px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 10px;color:var(--text);line-height:1.5;}
+  .rn-field textarea:focus{outline:none;border-color:var(--accent);}
+  .bottom-bar{position:sticky;bottom:0;background:var(--surface);border-top:1px solid var(--border);padding:10px 24px;display:flex;gap:8px;}
+
+  /* ONBOARDING */
+  .ob-page{padding:20px 24px;max-width:960px;margin:0 auto;}
+  .ob-header-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
+  .ob-title{font-size:15px;font-weight:600;}
+  .ob-stats{display:flex;gap:12px;flex-wrap:wrap;}
+  .ob-stat{font-size:12px;color:var(--text2);background:var(--surface2);border:1px solid var(--border);padding:3px 10px;border-radius:20px;}
+  .ob-stat span{font-weight:600;color:var(--text);}
+  .ob-progress{height:6px;background:var(--border);border-radius:3px;margin-bottom:20px;overflow:hidden;}
+  .ob-progress-fill{height:100%;background:var(--green);border-radius:3px;transition:width .4s;width:0%;}
+  .ob-section{margin-bottom:12px;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+  .ob-section-header{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;background:var(--surface2);user-select:none;}
+  .ob-section-header:hover{background:var(--surface2);filter:brightness(.97);}
+  .ob-section-title{font-size:13px;font-weight:600;flex:1;}
+  .ob-section-count{font-size:11px;color:var(--text3);background:var(--surface);border:1px solid var(--border);padding:1px 7px;border-radius:20px;white-space:nowrap;}
+  .ob-section-pct{font-size:11px;font-weight:600;min-width:36px;text-align:right;}
+  .ob-chevron{display:flex;color:var(--text3);transition:transform .2s;flex-shrink:0;}
+  .ob-chevron.open{transform:rotate(180deg);}
+  .ob-items{display:none;border-top:1px solid var(--border);}
+  .ob-items.open{display:block;}
+  .ob-item{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s;}
+  .ob-item:last-child{border-bottom:none;}
+  .ob-item:hover{background:var(--surface2);}
+  .ob-item.checked{background:var(--green-light);}
+  .ob-checkbox{width:16px;height:16px;border-radius:3px;border:1.5px solid var(--border2);background:var(--surface);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+  .ob-item.checked .ob-checkbox{background:var(--green);border-color:var(--green);color:white;font-size:10px;}
+  .ob-item-label{font-size:12px;color:var(--text);flex:1;line-height:1.4;}
+  .ob-item.checked .ob-item-label{color:var(--text2);text-decoration:line-through;text-decoration-color:var(--border2);}
+  .ob-reset-btn{font-size:11px;padding:3px 10px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;}
+  .ob-reset-btn:hover{background:var(--surface2);}
+  .ob-section-note{padding:10px 14px;background:var(--surface2);border-top:1px solid var(--border);}
+  .ob-note-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;}
+  .ob-section-note textarea{width:100%;font-size:12px;font-family:var(--sans);resize:vertical;min-height:40px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 9px;color:var(--text);line-height:1.5;}
+  .ob-section-note textarea:focus{outline:none;border-color:var(--accent);}
+  @media(max-width:680px){.radar-grid{grid-template-columns:1fr;}.radar-notes{grid-template-columns:1fr;}.bloc-header{grid-template-columns:60px 1fr auto;gap:8px;padding:10px 12px;}}
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <div class="header-left">
+    <div class="header-logo">SEA · Eval</div>
+    <div>
+      <div class="header-title">Évaluation Maxime Sion</div>
+      <div class="header-sub">Boulanger · 9h30 → 17h30 · 6h effectives</div>
+    </div>
+  </div>
+  <div class="tab-nav">
+    <button class="tab-btn active" onclick="showPage('planning',this)">📋 Planning journée</button>
+    <button class="tab-btn" onclick="showPage('radar',this)">🎯 Radar notation</button>
+    <button class="tab-btn" onclick="showPage('onboarding',this)">✅ Onboarding</button>
+  </div>
+  <div class="header-right">
+    <span id="save-indicator" style="font-size:11px;color:var(--green);opacity:0.4;transition:opacity .3s;white-space:nowrap">Auto-enregistré ici</span>
+    <button class="btn btn-primary" onclick="exportAll()">⬇ Exporter</button>
+    <button class="btn" onclick="resetAllStorage()">🗑 Effacer tout</button>
+  </div>
+</div>
+
+<div class="stats-bar">
+  <div class="stat-item"><div class="stat-val" id="stat-blocs">0/8</div><div class="stat-label">Blocs faits</div></div>
+  <div class="stat-item"><div class="stat-val">6h00</div><div class="stat-label">Durée effective</div></div>
+  <div class="stat-item"><div class="stat-val" id="stat-q">—</div><div class="stat-label">Questions</div></div>
+  <div class="stat-item"><div class="stat-val" id="stat-score">—</div><div class="stat-label">Score global /5</div></div>
+  <div class="stat-item">
+    <div class="progress-track"><div class="progress-fill" id="prog-fill"></div></div>
+    <div class="stat-val" id="stat-pct">0%</div>
+    <div class="stat-label">Progression</div>
+  </div>
+</div>
+
+<div class="page active" id="page-planning">
+  <div class="filter-bar">
+    <span class="filter-label">Filtre</span>
+    <button class="filter-btn active" onclick="setFilter('all',this)">Tous</button>
+    <button class="filter-btn" onclick="setFilter('Shopping',this)">Shopping</button>
+    <button class="filter-btn" onclick="setFilter('Search',this)">Search / IKC</button>
+    <button class="filter-btn" onclick="setFilter('PMax',this)">PMax</button>
+    <button class="filter-btn" onclick="setFilter('Tracking',this)">Tracking</button>
+    <button class="filter-btn" onclick="setFilter('Stratégie',this)">Stratégie</button>
+  </div>
+  <div class="main" id="planning-container"></div>
+</div>
+
+<div class="page" id="page-radar">
+  <div class="radar-page">
+    <div class="radar-grid">
+      <div>
+        <div class="radar-canvas-wrap"><canvas id="radarChart"></canvas></div>
+        <div class="radar-legend">
+          <div class="radar-legend-item"><div class="radar-legend-dot" style="background:#378ADD"></div>Niveau Maxime</div>
+          <div class="radar-legend-item"><div class="radar-legend-dot" style="background:#B5D4F4;border:1px dashed #378ADD"></div>Sénior attendu (4/5)</div>
+        </div>
+      </div>
+      <div>
+        <div class="score-global-box"><div class="score-big" id="score-big">—</div><div class="score-sub">score global / 5</div></div>
+        <div class="domains-panel" id="domains-panel"></div>
+      </div>
+    </div>
+    <div class="radar-notes">
+      <div class="rn-field"><div class="rn-label">Points forts observés</div><textarea id="rn-forts" data-prefill="Maîtrise du Shopping et du process trade marketing. Connait bien la structure du compte (nomenclature, segmentation par rayon). Lit les données business et sait ajuster les budgets en fonction du contexte (stock, saisonnalité). Ouvert aux retours et conscient de ses lacunes sans qu'on ait à les formuler à sa place." placeholder="Ex : bonne lecture ROAS global, réactif sur les refus…"></textarea></div>
+      <div class="rn-field"><div class="rn-label">Axes de progression</div><textarea id="rn-axes" data-prefill="1. Tracking (D7) : Consent Mode v2, conversions améliorées, S2S — sujet non maîtrisé, à traiter en priorité.\n2. Audiences (D6) : quasi absentes de sa pratique courante — RLSA, signaux PMax, Customer Match pas régulièrement mis à jour.\n3. SQR (D3) : rythme trimestriel insuffisant, pas de process structuré ni de log d'exclusions.\n4. PMax (D5) : peu utilisé, insights non consultés, exclusion marques absente.\n5. Tests A/B & assets (D4) : pas de routine en place, extensions non personnalisées par rayon." placeholder="Ex : SQR non structuré, Smart Bidding mal calibré…"></textarea></div>
+      <div class="rn-field"><div class="rn-label">Observations comportementales</div><textarea id="rn-comport" data-prefill="A délégué les sujets techniques à l'ancienne agence — la frontière entre ce qu'il sait faire seul et ce qui était fait par Keyad n'est pas toujours claire. Pas de résistance au changement.\nProfil business fort (10 ans d'offre produit) mais formation technique SEA incomplète sur plusieurs sujets critiques.\nBesoin de structurer des routines et un suivi des actions menées." placeholder="Ex : cherche validation, ne formule pas d'hypothèses…"></textarea></div>
+      <div class="rn-field"><div class="rn-label">Prochaines étapes</div><textarea id="rn-next" data-prefill="S1 : Audit tracking avec webanalystes + notre équipe (meeting déjà évoqué par Maxime).\nS1-S2 : Gemme SQR dédié Boulanger, routine 1 rayon/semaine.\nS2-S3 : Workshop exclusions (criterion type, listes partagées) + script alerting.\nS3-S4 : Revue extensions par rayon sur top campagnes.\nM2 : Premier A/B test structuré via Variante d'annonces." placeholder="Ex : formation SQR S1, audit enchères S2…"></textarea></div>
+    </div>
+  </div>
+</div>
+
+
+<div class="page" id="page-onboarding">
+  <div class="ob-page">
+    <div class="ob-header-row">
+      <div class="ob-title">Onboarding Maxime Sion — Checklist de maîtrise</div>
+      <div class="ob-stats">
+        <div class="ob-stat"><span id="ob-done-count">0</span> / 113 items validés</div>
+        <div class="ob-stat">Taux de complétion : <span id="ob-pct">0%</span></div>
+        <button class="ob-reset-btn" onclick="resetOnboarding()">↺ Réinitialiser</button>
+      </div>
+    </div>
+    <div class="ob-progress"><div class="ob-progress-fill" id="ob-prog-fill"></div></div>
+    <div class="ob-section" id="obs-0">
+      <div class="ob-section-header" onclick="toggleSection(0)">
+        <div style="width:10px;height:10px;border-radius:50%;background:#1B4FD8;flex-shrink:0"></div>
+        <span class="ob-section-title">ANNONCES</span>
+        <span class="ob-section-count">7 items</span>
+        <span class="ob-section-pct" id="obpct-0" style="color:#1B4FD8">0%</span>
+        <div class="ob-chevron" id="obchv-0"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+      <div class="ob-items" id="obitems-0">
+        <div class="ob-item" id="obi-0-0" onclick="toggleItem(0,0)">
+          <div class="ob-checkbox" id="obcb-0-0"></div>
+          <span class="ob-item-label">Création de titres & descriptions</span>
+        </div>
+        <div class="ob-item" id="obi-0-1" onclick="toggleItem(0,1)">
+          <div class="ob-checkbox" id="obcb-0-1"></div>
+          <span class="ob-item-label">Application de libellé</span>
+        </div>
+        <div class="ob-item" id="obi-0-2" onclick="toggleItem(0,2)">
+          <div class="ob-checkbox" id="obcb-0-2"></div>
+          <span class="ob-item-label">Utilisation de la fonctionnalité 'Variante d'annonces'</span>
+        </div>
+        <div class="ob-item" id="obi-0-3" onclick="toggleItem(0,3)">
+          <div class="ob-checkbox" id="obcb-0-3"></div>
+          <span class="ob-item-label">Création d'annonces DSA</span>
+        </div>
+        <div class="ob-item" id="obi-0-4" onclick="toggleItem(0,4)">
+          <div class="ob-checkbox" id="obcb-0-4"></div>
+          <span class="ob-item-label">Utilisation de la balise KeyWord</span>
+        </div>
+        <div class="ob-item" id="obi-0-5" onclick="toggleItem(0,5)">
+          <div class="ob-checkbox" id="obcb-0-5"></div>
+          <span class="ob-item-label">Utilisation des fonctionnalités Ad Customizer</span>
+        </div>
+        <div class="ob-item" id="obi-0-6" onclick="toggleItem(0,6)">
+          <div class="ob-checkbox" id="obcb-0-6"></div>
+          <span class="ob-item-label">Utilisation de la fonction IF</span>
+        </div>
+      <div class="ob-section-note">
+        <div class="ob-note-label">Note — section</div>
+        <textarea id="obnote-0" placeholder="Observations sur cette section…"></textarea>
+      </div>
+      </div>
+    </div>
+    <div class="ob-section" id="obs-1">
+      <div class="ob-section-header" onclick="toggleSection(1)">
+        <div style="width:10px;height:10px;border-radius:50%;background:#3B6D11;flex-shrink:0"></div>
+        <span class="ob-section-title">MOTS CLÉS</span>
+        <span class="ob-section-count">5 items</span>
+        <span class="ob-section-pct" id="obpct-1" style="color:#3B6D11">0%</span>
+        <div class="ob-chevron" id="obchv-1"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+      <div class="ob-items" id="obitems-1">
+        <div class="ob-item" id="obi-1-0" onclick="toggleItem(1,0)">
+          <div class="ob-checkbox" id="obcb-1-0"></div>
+          <span class="ob-item-label">Maîtrise des types de correspondances</span>
+        </div>
+        <div class="ob-item" id="obi-1-1" onclick="toggleItem(1,1)">
+          <div class="ob-checkbox" id="obcb-1-1"></div>
+          <span class="ob-item-label">Maîtrise de l'exclusion de termes de recherche peu pertinents</span>
+        </div>
+        <div class="ob-item" id="obi-1-2" onclick="toggleItem(1,2)">
+          <div class="ob-checkbox" id="obcb-1-2"></div>
+          <span class="ob-item-label">Maîtrise de l'ajout de termes pertinents</span>
+        </div>
+        <div class="ob-item" id="obi-1-3" onclick="toggleItem(1,3)">
+          <div class="ob-checkbox" id="obcb-1-3"></div>
+          <span class="ob-item-label">Création et application de listes de mots-clés à exclure</span>
+        </div>
+        <div class="ob-item" id="obi-1-4" onclick="toggleItem(1,4)">
+          <div class="ob-checkbox" id="obcb-1-4"></div>
+          <span class="ob-item-label">Maîtriser la transition vers des types de correspondances incrémentaux (Broad / AI Max)</span>
+        </div>
+      <div class="ob-section-note">
+        <div class="ob-note-label">Note — section</div>
+        <textarea id="obnote-1" placeholder="Observations sur cette section…"></textarea>
+      </div>
+      </div>
+    </div>
+    <div class="ob-section" id="obs-2">
+      <div class="ob-section-header" onclick="toggleSection(2)">
+        <div style="width:10px;height:10px;border-radius:50%;background:#C47B1A;flex-shrink:0"></div>
+        <span class="ob-section-title">EXTENSIONS D'ANNONCES</span>
+        <span class="ob-section-count">11 items</span>
+        <span class="ob-section-pct" id="obpct-2" style="color:#C47B1A">0%</span>
+        <div class="ob-chevron" id="obchv-2"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+      <div class="ob-items" id="obitems-2">
+        <div class="ob-item" id="obi-2-0" onclick="toggleItem(2,0)">
+          <div class="ob-checkbox" id="obcb-2-0"></div>
+          <span class="ob-item-label">Extensions de liens annexes optimisés</span>
+        </div>
+        <div class="ob-item" id="obi-2-1" onclick="toggleItem(2,1)">
+          <div class="ob-checkbox" id="obcb-2-1"></div>
+          <span class="ob-item-label">Extensions d'accroche</span>
+        </div>
+        <div class="ob-item" id="obi-2-2" onclick="toggleItem(2,2)">
+          <div class="ob-checkbox" id="obcb-2-2"></div>
+          <span class="ob-item-label">Extension d'extraits de site</span>
+        </div>
+        <div class="ob-item" id="obi-2-3" onclick="toggleItem(2,3)">
+          <div class="ob-checkbox" id="obcb-2-3"></div>
+          <span class="ob-item-label">Extensions d'images</span>
+        </div>
+        <div class="ob-item" id="obi-2-4" onclick="toggleItem(2,4)">
+          <div class="ob-checkbox" id="obcb-2-4"></div>
+          <span class="ob-item-label">Extension d'appel</span>
+        </div>
+        <div class="ob-item" id="obi-2-5" onclick="toggleItem(2,5)">
+          <div class="ob-checkbox" id="obcb-2-5"></div>
+          <span class="ob-item-label">Extension de formulaire</span>
+        </div>
+        <div class="ob-item" id="obi-2-6" onclick="toggleItem(2,6)">
+          <div class="ob-checkbox" id="obcb-2-6"></div>
+          <span class="ob-item-label">Extensions de lieu</span>
+        </div>
+        <div class="ob-item" id="obi-2-7" onclick="toggleItem(2,7)">
+          <div class="ob-checkbox" id="obcb-2-7"></div>
+          <span class="ob-item-label">Extensions de prix</span>
+        </div>
+        <div class="ob-item" id="obi-2-8" onclick="toggleItem(2,8)">
+          <div class="ob-checkbox" id="obcb-2-8"></div>
+          <span class="ob-item-label">Extension d'application</span>
+        </div>
+        <div class="ob-item" id="obi-2-9" onclick="toggleItem(2,9)">
+          <div class="ob-checkbox" id="obcb-2-9"></div>
+          <span class="ob-item-label">Extension de promotion</span>
+        </div>
+        <div class="ob-item" id="obi-2-10" onclick="toggleItem(2,10)">
+          <div class="ob-checkbox" id="obcb-2-10"></div>
+          <span class="ob-item-label">Extensions d'images et logo</span>
+        </div>
+      <div class="ob-section-note">
+        <div class="ob-note-label">Note — section</div>
+        <textarea id="obnote-2" placeholder="Observations sur cette section…"></textarea>
+      </div>
+      </div>
+    </div>
+    <div class="ob-section" id="obs-3">
+      <div class="ob-section-header" onclick="toggleSection(3)">
+        <div style="width:10px;height:10px;border-radius:50%;background:#534AB7;flex-shrink:0"></div>
+        <span class="ob-section-title">PARAMÈTRAGES & CONTRÔLE</span>
+        <span class="ob-section-count">5 items</span>
+        <span class="ob-section-pct" id="obpct-3" style="color:#534AB7">0%</span>
+        <div class="ob-chevron" id="obchv-3"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+      <div class="ob-items" id="obitems-3">
+        <div class="ob-item" id="obi-3-0" onclick="toggleItem(3,0)">
+          <div class="ob-checkbox" id="obcb-3-0"></div>
+          <span class="ob-item-label">Zones géographiques</span>
+        </div>
+        <div class="ob-item" id="obi-3-1" onclick="toggleItem(3,1)">
+          <div class="ob-checkbox" id="obcb-3-1"></div>
+          <span class="ob-item-label">Réseaux (activation ou non des Partenaires)</span>
+        </div>
+        <div class="ob-item" id="obi-3-2" onclick="toggleItem(3,2)">
+          <div class="ob-checkbox" id="obcb-3-2"></div>
+          <span class="ob-item-label">Budget</span>
+        </div>
+        <div class="ob-item" id="obi-3-3" onclick="toggleItem(3,3)">
+          <div class="ob-checkbox" id="obcb-3-3"></div>
+          <span class="ob-item-label">Rotation des annonces</span>
+        </div>
+        <div class="ob-item" id="obi-3-4" onclick="toggleItem(3,4)">
+          <div class="ob-checkbox" id="obcb-3-4"></div>
+          <span class="ob-item-label">Méthode de diffusion des annonces</span>
+        </div>
+      <div class="ob-section-note">
+        <div class="ob-note-label">Note — section</div>
+        <textarea id="obnote-3" placeholder="Observations sur cette section…"></textarea>
+      </div>
+      </div>
+    </div>
+    <div class="ob-section" id="obs-4">
+      <div class="ob-section-header" onclick="toggleSection(4)">
+        <div style="width:10px;height:10px;border-radius:50%;background:#C47B1A;flex-shrink:0"></div>
+        <span class="ob-section-title">AJUSTEMENTS D'ENCHÈRES</span>
+        <span class="ob-section-count">8 items</span>
+        <span class="ob-section-pct" id="obpct-4" style="color:#C47B1A">0%</span>
+        <div class="ob-chevron" id="obchv-4"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+      <div class="ob-items" id="obitems-4">
+        <div class="ob-item" id="obi-4-0" onclick="toggleItem(4,0)">
+          <div class="ob-checkbox" id="obcb-4-0"></div>
+          <span class="ob-item-label">Calendrier de diffusion</span>
+        </div>
+        <div class="ob-item" id="obi-4-1" onclick="toggleItem(4,1)">
+          <div class="ob-checkbox" id="obcb-4-1"></div>
+          <span class="ob-item-label">Appareils</span>
+        </div>
+        <div class="ob-item" id="obi-4-2" onclick="toggleItem(4,2)">
+          <div class="ob-checkbox" id="obcb-4-2"></div>
+          <span class="ob-item-label">Zones géographiques</span>
+        </div>
+        <div class="ob-item" id="obi-4-3" onclick="toggleItem(4,3)">
+          <div class="ob-checkbox" id="obcb-4-3"></div>
+          <span class="ob-item-label">Audiences</span>
+        </div>
+        <div class="ob-item" id="obi-4-4" onclick="toggleItem(4,4)">
+          <div class="ob-checkbox" id="obcb-4-4"></div>
+          <span class="ob-item-label">Gestion des enchères manuelles</span>
+        </div>
+        <div class="ob-item" id="obi-4-5" onclick="toggleItem(4,5)">
+          <div class="ob-checkbox" id="obcb-4-5"></div>
+          <span class="ob-item-label">Compréhension des stratégies d'enchères automatiques</span>
+        </div>
+        <div class="ob-item" id="obi-4-6" onclick="toggleItem(4,6)">
+          <div class="ob-checkbox" id="obcb-4-6"></div>
+          <span class="ob-item-label">Maîtriser les ajustements de valeur</span>
+        </div>
+        <div class="ob-item" id="obi-4-7" onclick="toggleItem(4,7)">
+          <div class="ob-checkbox" id="obcb-4-7"></div>
+          <span class="ob-item-label">Maîtriser les exclusions de données</span>
+        </div>
+      <div class="ob-section-note">
+        <div class="ob-note-label">Note — section</div>
+        <textarea id="obnote-4" placeholder="Observations sur cette section…"></textarea>
+      </div>
+      </div>
+    </div>
+    <div class="ob-section" id="obs-5">
+      <div class="ob-section-header" onclick="toggleSection(5)">
+        <div style="width:10px;height:10px;border-radius:50%;background:#993C1D;flex-shrink:0"></div>
+        <span class="ob-section-title">SHOPPING & MERCHANT CENTER</span>
+        <span class="ob-section-count">12 items</span>
+        <span class="ob-section-pct" id="obpct-5" style="color:#993C1D">0%</span>
+        <div class="ob-chevron" id="obchv-5"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+      <div class="ob-items" id="obitems-5">
+        <div class="ob-item" id="obi-5-0" onclick="toggleItem(5,0)">
+          <div class="ob-checkbox" id="obcb-5-0"></div>
+          <span class="ob-item-label">Compréhension d'un flux de produits</span>
+        </div>
+        <div class="ob-item" id="obi-5-1" onclick="toggleItem(5,1)">
+          <div class="ob-checkbox" id="obcb-5-1"></div>
+          <span class="ob-item-label">Compréhension du lien entre le flux / GMC / Google Ads</span>
+        </div>
+        <div class="ob-item" id="obi-5-2" onclick="toggleItem(5,2)">
+          <div class="ob-checkbox" id="obcb-5-2"></div>
+          <span class="ob-item-label">Maîtrise de l'association des comptes</span>
+        </div>
+        <div class="ob-item" id="obi-5-3" onclick="toggleItem(5,3)">
+          <div class="ob-checkbox" id="obcb-5-3"></div>
+          <span class="ob-item-label">Maîtrise de l'ajout d'une promotion sur GMC</span>
+        </div>
+        <div class="ob-item" id="obi-5-4" onclick="toggleItem(5,4)">
+          <div class="ob-checkbox" id="obcb-5-4"></div>
+          <span class="ob-item-label">Maîtrise de l'importation manuelle d'un flux</span>
+        </div>
+        <div class="ob-item" id="obi-5-5" onclick="toggleItem(5,5)">
+          <div class="ob-checkbox" id="obcb-5-5"></div>
+          <span class="ob-item-label">Maîtrise de l'export d'un flux</span>
+        </div>
+        <div class="ob-item" id="obi-5-6" onclick="toggleItem(5,6)">
+          <div class="ob-checkbox" id="obcb-5-6"></div>
+          <span class="ob-item-label">Savoir retrouver les problèmes et les règles des produits</span>
+        </div>
+        <div class="ob-item" id="obi-5-7" onclick="toggleItem(5,7)">
+          <div class="ob-checkbox" id="obcb-5-7"></div>
+          <span class="ob-item-label">Maîtrise des custom labels</span>
+        </div>
+        <div class="ob-item" id="obi-5-8" onclick="toggleItem(5,8)">
+          <div class="ob-checkbox" id="obcb-5-8"></div>
+          <span class="ob-item-label">Définition de règles de flux</span>
+        </div>
+        <div class="ob-item" id="obi-5-9" onclick="toggleItem(5,9)">
+          <div class="ob-checkbox" id="obcb-5-9"></div>
+          <span class="ob-item-label">Segmentation d'une campagne Shopping (par catégorie / types de produits / Custom Labels)</span>
+        </div>
+        <div class="ob-item" id="obi-5-10" onclick="toggleItem(5,10)">
+          <div class="ob-checkbox" id="obcb-5-10"></div>
+          <span class="ob-item-label">Segmentation jusqu'à l'ID produit</span>
+        </div>
+        <div class="ob-item" id="obi-5-11" onclick="toggleItem(5,11)">
+          <div class="ob-checkbox" id="obcb-5-11"></div>
+          <span class="ob-item-label">Analyse et détection des marques/produits/types de produits sur/sous-performants</span>
+        </div>
+      <div class="ob-section-note">
+        <div class="ob-note-label">Note — section</div>
+        <textarea id="obnote-5" placeholder="Observations sur cette section…"></textarea>
+      </div>
+      </div>
+    </div>
+    <div class="ob-section" id="obs-6">
+      <div class="ob-section-header" onclick="toggleSection(6)">
+        <div style="width:10px;height:10px;border-radius:50%;background:#0E7A5E;flex-shrink:0"></div>
+        <span class="ob-section-title">AUDIENCES</span>
+        <span class="ob-section-count">9 items</span>
+        <span class="ob-section-pct" id="obpct-6" style="color:#0E7A5E">0%</span>
+        <div class="ob-chevron" id="obchv-6"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+      <div class="ob-items" id="obitems-6">
+        <div class="ob-item" id="obi-6-0" onclick="toggleItem(6,0)">
+          <div class="ob-checkbox" id="obcb-6-0"></div>
+          <span class="ob-item-label">Ajout d'audiences en Search</span>
+        </div>
+        <div class="ob-item" id="obi-6-1" onclick="toggleItem(6,1)">
+          <div class="ob-checkbox" id="obcb-6-1"></div>
+          <span class="ob-item-label">Création d'audiences sur Google Ads (visiteurs / visiteurs non acheteurs / abandon panier)</span>
+        </div>
+        <div class="ob-item" id="obi-6-2" onclick="toggleItem(6,2)">
+          <div class="ob-checkbox" id="obcb-6-2"></div>
+          <span class="ob-item-label">Création d'audiences sur Google Analytics</span>
+        </div>
+        <div class="ob-item" id="obi-6-3" onclick="toggleItem(6,3)">
+          <div class="ob-checkbox" id="obcb-6-3"></div>
+          <span class="ob-item-label">Compréhension & mise en place audiences similaires</span>
+        </div>
+        <div class="ob-item" id="obi-6-4" onclick="toggleItem(6,4)">
+          <div class="ob-checkbox" id="obcb-6-4"></div>
+          <span class="ob-item-label">Compréhension & mise en place audiences in-market</span>
+        </div>
+        <div class="ob-item" id="obi-6-5" onclick="toggleItem(6,5)">
+          <div class="ob-checkbox" id="obcb-6-5"></div>
+          <span class="ob-item-label">Compréhension & mise en place audiences d'affinité</span>
+        </div>
+        <div class="ob-item" id="obi-6-6" onclick="toggleItem(6,6)">
+          <div class="ob-checkbox" id="obcb-6-6"></div>
+          <span class="ob-item-label">Compréhension & mise en place audiences custom intent</span>
+        </div>
+        <div class="ob-item" id="obi-6-7" onclick="toggleItem(6,7)">
+          <div class="ob-checkbox" id="obcb-6-7"></div>
+          <span class="ob-item-label">Différence entre type de ciblage : Ciblage & Observation</span>
+        </div>
+        <div class="ob-item" id="obi-6-8" onclick="toggleItem(6,8)">
+          <div class="ob-checkbox" id="obcb-6-8"></div>
+          <span class="ob-item-label">Ciblage par liste de client : configuration automatisée et respect des règles de confidentialité</span>
+        </div>
+      <div class="ob-section-note">
+        <div class="ob-note-label">Note — section</div>
+        <textarea id="obnote-6" placeholder="Observations sur cette section…"></textarea>
+      </div>
+      </div>
+    </div>
+    <div class="ob-section" id="obs-7">
+      <div class="ob-section-header" onclick="toggleSection(7)">
+        <div style="width:10px;height:10px;border-radius:50%;background:#993556;flex-shrink:0"></div>
+        <span class="ob-section-title">TRACKING</span>
+        <span class="ob-section-count">7 items</span>
+        <span class="ob-section-pct" id="obpct-7" style="color:#993556">0%</span>
+        <div class="ob-chevron" id="obchv-7"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+      <div class="ob-items" id="obitems-7">
+        <div class="ob-item" id="obi-7-0" onclick="toggleItem(7,0)">
+          <div class="ob-checkbox" id="obcb-7-0"></div>
+          <span class="ob-item-label">Compréhension du Global Site Tag (tag à placer sur l'ensemble des pages du site)</span>
+        </div>
+        <div class="ob-item" id="obi-7-1" onclick="toggleItem(7,1)">
+          <div class="ob-checkbox" id="obcb-7-1"></div>
+          <span class="ob-item-label">Savoir retrouver le Global Site Tag et l'expliquer (Tag Assistant)</span>
+        </div>
+        <div class="ob-item" id="obi-7-2" onclick="toggleItem(7,2)">
+          <div class="ob-checkbox" id="obcb-7-2"></div>
+          <span class="ob-item-label">Compréhension des extraits de code à installer sur les pages de confirmation</span>
+        </div>
+        <div class="ob-item" id="obi-7-3" onclick="toggleItem(7,3)">
+          <div class="ob-checkbox" id="obcb-7-3"></div>
+          <span class="ob-item-label">Différence Tag Google Ads et Tag Analytics</span>
+        </div>
+        <div class="ob-item" id="obi-7-4" onclick="toggleItem(7,4)">
+          <div class="ob-checkbox" id="obcb-7-4"></div>
+          <span class="ob-item-label">Création et utilisation des colonnes personnalisées (Lead qualifié, CPL, COS…)</span>
+        </div>
+        <div class="ob-item" id="obi-7-5" onclick="toggleItem(7,5)">
+          <div class="ob-checkbox" id="obcb-7-5"></div>
+          <span class="ob-item-label">Comprendre et vérifier l'implémentation du Mode de consentement v2</span>
+        </div>
+        <div class="ob-item" id="obi-7-6" onclick="toggleItem(7,6)">
+          <div class="ob-checkbox" id="obcb-7-6"></div>
+          <span class="ob-item-label">Comprendre l'implémentation du Server to Server</span>
+        </div>
+      <div class="ob-section-note">
+        <div class="ob-note-label">Note — section</div>
+        <textarea id="obnote-7" placeholder="Observations sur cette section…"></textarea>
+      </div>
+      </div>
+    </div>
+    <div class="ob-section" id="obs-8">
+      <div class="ob-section-header" onclick="toggleSection(8)">
+        <div style="width:10px;height:10px;border-radius:50%;background:#1B4FD8;flex-shrink:0"></div>
+        <span class="ob-section-title">CRÉATION DE CAMPAGNES</span>
+        <span class="ob-section-count">6 items</span>
+        <span class="ob-section-pct" id="obpct-8" style="color:#1B4FD8">0%</span>
+        <div class="ob-chevron" id="obchv-8"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+      <div class="ob-items" id="obitems-8">
+        <div class="ob-item" id="obi-8-0" onclick="toggleItem(8,0)">
+          <div class="ob-checkbox" id="obcb-8-0"></div>
+          <span class="ob-item-label">Création d'une campagne Search complète (Paramètres / Annonces / Mots-clés / Extensions)</span>
+        </div>
+        <div class="ob-item" id="obi-8-1" onclick="toggleItem(8,1)">
+          <div class="ob-checkbox" id="obcb-8-1"></div>
+          <span class="ob-item-label">Création d'une campagne Display complète (Paramètres / Annonces / Audiences)</span>
+        </div>
+        <div class="ob-item" id="obi-8-2" onclick="toggleItem(8,2)">
+          <div class="ob-checkbox" id="obcb-8-2"></div>
+          <span class="ob-item-label">Création d'une campagne Performance Max complète, segmentée par objectifs business</span>
+        </div>
+        <div class="ob-item" id="obi-8-3" onclick="toggleItem(8,3)">
+          <div class="ob-checkbox" id="obcb-8-3"></div>
+          <span class="ob-item-label">Création d'une campagne Shopping complète</span>
+        </div>
+        <div class="ob-item" id="obi-8-4" onclick="toggleItem(8,4)">
+          <div class="ob-checkbox" id="obcb-8-4"></div>
+          <span class="ob-item-label">Création d'une campagne Demand Gen complète et comprendre les différents formats</span>
+        </div>
+        <div class="ob-item" id="obi-8-5" onclick="toggleItem(8,5)">
+          <div class="ob-checkbox" id="obcb-8-5"></div>
+          <span class="ob-item-label">Création d'une campagne YouTube Ads complète</span>
+        </div>
+      <div class="ob-section-note">
+        <div class="ob-note-label">Note — section</div>
+        <textarea id="obnote-8" placeholder="Observations sur cette section…"></textarea>
+      </div>
+      </div>
+    </div>
+    <div class="ob-section" id="obs-9">
+      <div class="ob-section-header" onclick="toggleSection(9)">
+        <div style="width:10px;height:10px;border-radius:50%;background:#5F5E5A;flex-shrink:0"></div>
+        <span class="ob-section-title">REPORTING & PRÉSENTATION</span>
+        <span class="ob-section-count">6 items</span>
+        <span class="ob-section-pct" id="obpct-9" style="color:#5F5E5A">0%</span>
+        <div class="ob-chevron" id="obchv-9"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+      <div class="ob-items" id="obitems-9">
+        <div class="ob-item" id="obi-9-0" onclick="toggleItem(9,0)">
+          <div class="ob-checkbox" id="obcb-9-0"></div>
+          <span class="ob-item-label">Création d'un reporting depuis Google Ads via les Rapports et Tableaux de bord</span>
+        </div>
+        <div class="ob-item" id="obi-9-1" onclick="toggleItem(9,1)">
+          <div class="ob-checkbox" id="obcb-9-1"></div>
+          <span class="ob-item-label">Création d'un DataStudio (Looker Studio)</span>
+        </div>
+        <div class="ob-item" id="obi-9-2" onclick="toggleItem(9,2)">
+          <div class="ob-checkbox" id="obcb-9-2"></div>
+          <span class="ob-item-label">Rédaction d'un mail de reporting basé sur DataStudio</span>
+        </div>
+        <div class="ob-item" id="obi-9-3" onclick="toggleItem(9,3)">
+          <div class="ob-checkbox" id="obcb-9-3"></div>
+          <span class="ob-item-label">Qualité et pertinence des analyses</span>
+        </div>
+        <div class="ob-item" id="obi-9-4" onclick="toggleItem(9,4)">
+          <div class="ob-checkbox" id="obcb-9-4"></div>
+          <span class="ob-item-label">Qualité et pertinence des recommandations</span>
+        </div>
+        <div class="ob-item" id="obi-9-5" onclick="toggleItem(9,5)">
+          <div class="ob-checkbox" id="obcb-9-5"></div>
+          <span class="ob-item-label">Création d'une présentation sur GSlide (résultats, actions, roadmap, projection)</span>
+        </div>
+      <div class="ob-section-note">
+        <div class="ob-note-label">Note — section</div>
+        <textarea id="obnote-9" placeholder="Observations sur cette section…"></textarea>
+      </div>
+      </div>
+    </div>
+    <div class="ob-section" id="obs-10">
+      <div class="ob-section-header" onclick="toggleSection(10)">
+        <div style="width:10px;height:10px;border-radius:50%;background:#5C3D9B;flex-shrink:0"></div>
+        <span class="ob-section-title">APP CAMPAIGN</span>
+        <span class="ob-section-count">11 items</span>
+        <span class="ob-section-pct" id="obpct-10" style="color:#5C3D9B">0%</span>
+        <div class="ob-chevron" id="obchv-10"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+      <div class="ob-items" id="obitems-10">
+        <div class="ob-item" id="obi-10-0" onclick="toggleItem(10,0)">
+          <div class="ob-checkbox" id="obcb-10-0"></div>
+          <span class="ob-item-label">Création d'une campagne App Install</span>
+        </div>
+        <div class="ob-item" id="obi-10-1" onclick="toggleItem(10,1)">
+          <div class="ob-checkbox" id="obcb-10-1"></div>
+          <span class="ob-item-label">Création d'une campagne App for Conversion</span>
+        </div>
+        <div class="ob-item" id="obi-10-2" onclick="toggleItem(10,2)">
+          <div class="ob-checkbox" id="obcb-10-2"></div>
+          <span class="ob-item-label">Set up du tracking</span>
+        </div>
+        <div class="ob-item" id="obi-10-3" onclick="toggleItem(10,3)">
+          <div class="ob-checkbox" id="obcb-10-3"></div>
+          <span class="ob-item-label">Lier les comptes Firebase / GA4 et Google Ads</span>
+        </div>
+        <div class="ob-item" id="obi-10-4" onclick="toggleItem(10,4)">
+          <div class="ob-checkbox" id="obcb-10-4"></div>
+          <span class="ob-item-label">Créer des listes d'audiences sur Firebase / GA4</span>
+        </div>
+        <div class="ob-item" id="obi-10-5" onclick="toggleItem(10,5)">
+          <div class="ob-checkbox" id="obcb-10-5"></div>
+          <span class="ob-item-label">Créer des listes d'audiences sur les MMPs</span>
+        </div>
+        <div class="ob-item" id="obi-10-6" onclick="toggleItem(10,6)">
+          <div class="ob-checkbox" id="obcb-10-6"></div>
+          <span class="ob-item-label">Ajout d'un flux de produit dans la campagne</span>
+        </div>
+        <div class="ob-item" id="obi-10-7" onclick="toggleItem(10,7)">
+          <div class="ob-checkbox" id="obcb-10-7"></div>
+          <span class="ob-item-label">Commencer par des stratégies d'enchères au TCPI</span>
+        </div>
+        <div class="ob-item" id="obi-10-8" onclick="toggleItem(10,8)">
+          <div class="ob-checkbox" id="obcb-10-8"></div>
+          <span class="ob-item-label">Tester le TCPA sur une action de l'app</span>
+        </div>
+        <div class="ob-item" id="obi-10-9" onclick="toggleItem(10,9)">
+          <div class="ob-checkbox" id="obcb-10-9"></div>
+          <span class="ob-item-label">Tester le TROAS sur une action de l'app</span>
+        </div>
+        <div class="ob-item" id="obi-10-10" onclick="toggleItem(10,10)">
+          <div class="ob-checkbox" id="obcb-10-10"></div>
+          <span class="ob-item-label">Review de la qualité des assets et les challenger</span>
+        </div>
+      <div class="ob-section-note">
+        <div class="ob-note-label">Note — section</div>
+        <textarea id="obnote-10" placeholder="Observations sur cette section…"></textarea>
+      </div>
+      </div>
+    </div>
+    <div class="ob-section" id="obs-11">
+      <div class="ob-section-header" onclick="toggleSection(11)">
+        <div style="width:10px;height:10px;border-radius:50%;background:#C0392B;flex-shrink:0"></div>
+        <span class="ob-section-title">OPTIMISATIONS CONTINUES</span>
+        <span class="ob-section-count">10 items</span>
+        <span class="ob-section-pct" id="obpct-11" style="color:#C0392B">0%</span>
+        <div class="ob-chevron" id="obchv-11"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+      <div class="ob-items" id="obitems-11">
+        <div class="ob-item" id="obi-11-0" onclick="toggleItem(11,0)">
+          <div class="ob-checkbox" id="obcb-11-0"></div>
+          <span class="ob-item-label">Vérifier les fluctuations (Google Ads + Analytics)</span>
+        </div>
+        <div class="ob-item" id="obi-11-1" onclick="toggleItem(11,1)">
+          <div class="ob-checkbox" id="obcb-11-1"></div>
+          <span class="ob-item-label">Surveiller les budgets</span>
+        </div>
+        <div class="ob-item" id="obi-11-2" onclick="toggleItem(11,2)">
+          <div class="ob-checkbox" id="obcb-11-2"></div>
+          <span class="ob-item-label">Garder un œil sur la concurrence</span>
+        </div>
+        <div class="ob-item" id="obi-11-3" onclick="toggleItem(11,3)">
+          <div class="ob-checkbox" id="obcb-11-3"></div>
+          <span class="ob-item-label">Analyse de termes de recherche (SQR)</span>
+        </div>
+        <div class="ob-item" id="obi-11-4" onclick="toggleItem(11,4)">
+          <div class="ob-checkbox" id="obcb-11-4"></div>
+          <span class="ob-item-label">Surveiller les A/B tests en cours</span>
+        </div>
+        <div class="ob-item" id="obi-11-5" onclick="toggleItem(11,5)">
+          <div class="ob-checkbox" id="obcb-11-5"></div>
+          <span class="ob-item-label">Repasse régulière sur les extensions d'annonces</span>
+        </div>
+        <div class="ob-item" id="obi-11-6" onclick="toggleItem(11,6)">
+          <div class="ob-checkbox" id="obcb-11-6"></div>
+          <span class="ob-item-label">Analyser les différents segments de campagnes tous les mois</span>
+        </div>
+        <div class="ob-item" id="obi-11-7" onclick="toggleItem(11,7)">
+          <div class="ob-checkbox" id="obcb-11-7"></div>
+          <span class="ob-item-label">Savoir diagnostiquer les Impression Share et adapter la stratégie</span>
+        </div>
+        <div class="ob-item" id="obi-11-8" onclick="toggleItem(11,8)">
+          <div class="ob-checkbox" id="obcb-11-8"></div>
+          <span class="ob-item-label">Maîtrise des fonctionnalités d'A/B test natives</span>
+        </div>
+        <div class="ob-item" id="obi-11-9" onclick="toggleItem(11,9)">
+          <div class="ob-checkbox" id="obcb-11-9"></div>
+          <span class="ob-item-label">Mise en place des scripts</span>
+        </div>
+      <div class="ob-section-note">
+        <div class="ob-note-label">Note — section</div>
+        <textarea id="obnote-11" placeholder="Observations sur cette section…"></textarea>
+      </div>
+      </div>
+    </div>
+    <div class="ob-section" id="obs-12">
+      <div class="ob-section-header" onclick="toggleSection(12)">
+        <div style="width:10px;height:10px;border-radius:50%;background:#444441;flex-shrink:0"></div>
+        <span class="ob-section-title">GOOGLE ADS EDITOR</span>
+        <span class="ob-section-count">10 items</span>
+        <span class="ob-section-pct" id="obpct-12" style="color:#444441">0%</span>
+        <div class="ob-chevron" id="obchv-12"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+      <div class="ob-items" id="obitems-12">
+        <div class="ob-item" id="obi-12-0" onclick="toggleItem(12,0)">
+          <div class="ob-checkbox" id="obcb-12-0"></div>
+          <span class="ob-item-label">Téléchargement d'un compte</span>
+        </div>
+        <div class="ob-item" id="obi-12-1" onclick="toggleItem(12,1)">
+          <div class="ob-checkbox" id="obcb-12-1"></div>
+          <span class="ob-item-label">Exportation d'un compte</span>
+        </div>
+        <div class="ob-item" id="obi-12-2" onclick="toggleItem(12,2)">
+          <div class="ob-checkbox" id="obcb-12-2"></div>
+          <span class="ob-item-label">Importation d'un compte</span>
+        </div>
+        <div class="ob-item" id="obi-12-3" onclick="toggleItem(12,3)">
+          <div class="ob-checkbox" id="obcb-12-3"></div>
+          <span class="ob-item-label">Préparation des fichiers Excel pour l'importation</span>
+        </div>
+        <div class="ob-item" id="obi-12-4" onclick="toggleItem(12,4)">
+          <div class="ob-checkbox" id="obcb-12-4"></div>
+          <span class="ob-item-label">Création et paramétrage d'une campagne</span>
+        </div>
+        <div class="ob-item" id="obi-12-5" onclick="toggleItem(12,5)">
+          <div class="ob-checkbox" id="obcb-12-5"></div>
+          <span class="ob-item-label">Création d'une annonce</span>
+        </div>
+        <div class="ob-item" id="obi-12-6" onclick="toggleItem(12,6)">
+          <div class="ob-checkbox" id="obcb-12-6"></div>
+          <span class="ob-item-label">Création de mots-clés</span>
+        </div>
+        <div class="ob-item" id="obi-12-7" onclick="toggleItem(12,7)">
+          <div class="ob-checkbox" id="obcb-12-7"></div>
+          <span class="ob-item-label">Duplication de campagnes / modifications</span>
+        </div>
+        <div class="ob-item" id="obi-12-8" onclick="toggleItem(12,8)">
+          <div class="ob-checkbox" id="obcb-12-8"></div>
+          <span class="ob-item-label">Modifications en masse</span>
+        </div>
+        <div class="ob-item" id="obi-12-9" onclick="toggleItem(12,9)">
+          <div class="ob-checkbox" id="obcb-12-9"></div>
+          <span class="ob-item-label">Compréhension globale d'Editor (gestion et organisation des niveaux)</span>
+        </div>
+      <div class="ob-section-note">
+        <div class="ob-note-label">Note — section</div>
+        <textarea id="obnote-12" placeholder="Observations sur cette section…"></textarea>
+      </div>
+      </div>
+    </div>
+    <div class="ob-section" id="obs-13">
+      <div class="ob-section-header" onclick="toggleSection(13)">
+        <div style="width:10px;height:10px;border-radius:50%;background:#085041;flex-shrink:0"></div>
+        <span class="ob-section-title">PIANO ANALYTICS</span>
+        <span class="ob-section-count">6 items</span>
+        <span class="ob-section-pct" id="obpct-13" style="color:#085041">0%</span>
+        <div class="ob-chevron" id="obchv-13"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+      <div class="ob-items" id="obitems-13">
+        <div class="ob-item" id="obi-13-0" onclick="toggleItem(13,0)">
+          <div class="ob-checkbox" id="obcb-13-0"></div>
+          <span class="ob-item-label">Modèle de données par événements et propriétés</span>
+        </div>
+        <div class="ob-item" id="obi-13-1" onclick="toggleItem(13,1)">
+          <div class="ob-checkbox" id="obcb-13-1"></div>
+          <span class="ob-item-label">Connexions régies publicitaires et extractions de données</span>
+        </div>
+        <div class="ob-item" id="obi-13-2" onclick="toggleItem(13,2)">
+          <div class="ob-checkbox" id="obcb-13-2"></div>
+          <span class="ob-item-label">Analyse de l'engagement qualifié et suivi de cohortes</span>
+        </div>
+        <div class="ob-item" id="obi-13-3" onclick="toggleItem(13,3)">
+          <div class="ob-checkbox" id="obcb-13-3"></div>
+          <span class="ob-item-label">Espaces de travail et création de tableaux de bord personnalisés</span>
+        </div>
+        <div class="ob-item" id="obi-13-4" onclick="toggleItem(13,4)">
+          <div class="ob-checkbox" id="obcb-13-4"></div>
+          <span class="ob-item-label">Segments croisés complexes et activation de données</span>
+        </div>
+        <div class="ob-item" id="obi-13-5" onclick="toggleItem(13,5)">
+          <div class="ob-checkbox" id="obcb-13-5"></div>
+          <span class="ob-item-label">Modèles d'attribution et gestion de l'exemption de consentement</span>
+        </div>
+      <div class="ob-section-note">
+        <div class="ob-note-label">Note — section</div>
+        <textarea id="obnote-13" placeholder="Observations sur cette section…"></textarea>
+      </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="bottom-bar">
+  <button class="btn btn-primary" onclick="exportAll()">⬇ Exporter tout</button>
+  <button class="btn" onclick="resetAll()">↺ Réinitialiser</button>
+</div>
+
+<script>
+const TH={
+  'Structure':{bg:'#EEEDFE',c:'#534AB7'},'Enchères':{bg:'#FDF3E3',c:'#C47B1A'},
+  'Mots-clés':{bg:'#EAF3DE',c:'#3B6D11'},'Annonces':{bg:'#EBF0FD',c:'#1B4FD8'},
+  'Shopping':{bg:'#FAECE7',c:'#993C1D'},'PMax':{bg:'#FDECEA',c:'#7A1F10'},
+  'Audiences':{bg:'#E1F5EE',c:'#0F6E56'},'Tracking':{bg:'#FBEAF0',c:'#993556'},
+  'Stratégie':{bg:'#F1EFE8',c:'#5F5E5A'},'Flux':{bg:'#FFF4E0',c:'#8B5E04'},
+  'App':{bg:'#F0ECF8',c:'#5C3D9B'},'Demand Gen':{bg:'#FDF3E3',c:'#633806'},
+};
+const CM={
+  'IKC':{bg:'#EEEDFE',c:'#534AB7'},'Shopping':{bg:'#FAECE7',c:'#993C1D'},
+  'Text Ads':{bg:'#EBF0FD',c:'#1B4FD8'},'Trade':{bg:'#EAF3DE',c:'#3B6D11'},
+  'Magasins':{bg:'#F1EFE8',c:'#5F5E5A'},'Global':{bg:'#F5F5F5',c:'#555'},
+};
+
+// slot: 1=9h30-10h, 2=10h45-12h30, 3=13h45-17h30
+const blocs=[
+  {id:'B0',notes:"A l'aise : mise en avt promo / trade marketing / optimisation globale / vision strat par cat et pdt / shopping.\nA travailler : sujet très technique sur le tracking / tagging / campagne lead / dashboarding complexe (source multi, variable personnalisée).",slot:1,time:'9h30',dur:'30 min',title:'Ouverture & cadrage',compte:'Global',themes:['Stratégie'],tags:['Stratégie'],
+   sub:'Vue d\'ensemble · posture copilote · baseline comportementale',camps:[],
+   qs:[{q:"Comment tu décrirais le compte Boulanger à quelqu'un qui ne le connaît pas — quelle est la logique d'ensemble ?",d:'D8'},{q:"C'est quoi les 2-3 sujets sur lesquels tu as le plus de visibilité, et ceux où tu te sens moins à l'aise ?",d:'D8'},{q:"Avec l'ancienne agence, comment vous vous répartissiez les tâches — qui faisait quoi concrètement ?",d:'D8'}],
+   sigs:[{col:'#C47B1A',txt:'La Q3 est la plus révélatrice : une liste de tâches déléguées à l\'ancienne agence calibre l\'amplitude réelle du gap.'},{col:'#1B4FD8',txt:'Un sénior décrit le compte avec une logique business (univers produits, saisonnalité, mix canal), pas seulement technique.'}],
+   obj:{s:'obj-eval',t:'Observer si Maxime navigue par réflexe ou avec hésitation dans le MCC. Poser une baseline comportementale dès les 30 premières minutes.'}},
+
+  {id:'B1',notes:"DSA tout produit -> Très performante donc peu d'action menés pour le moment.\nNomenclature très claire (par rayon).\nSQR : sur rythme trimestriel.\nEditor : manque de pratique -> Point à travailler, et plus régulièrement.\nExtension : placé niveau compte, à intégrer dans une roadmap pour personnalisation au niveau campagne / rayon.",slot:2,time:'10h45',dur:'50 min',title:'Boulanger — IKC',compte:'IKC',themes:['Structure','Enchères','Mots-clés'],tags:['Search'],
+   sub:'206 campagnes Search · 1,62M€ · Structure, enchères, SQR en live',
+   camps:[{n:'[0670] - SN - IKC - LT - Maison > Aspiration',m:'167k€ · tROAS',a:[]},{n:'[0410] - SN - IKC - LT - TV > Téléviseur',m:'75k€ · tROAS',a:[]},{n:'[0740] - SN - IKC - LT - GEM > Réfrigérateur',m:'70k€ · tROAS',a:[]},{n:'[0710] - SN - IKC - LT - GEM > Lave-linge',m:'53k€ · tROAS',a:[]}],
+   qs:[{q:"Tu peux me montrer comment tu navigues dans IKC au quotidien — comment tu sais où regarder en premier ?",d:'D1'},{q:"La nomenclature [0670] - SN - IKC - LT — tu peux me l'expliquer segment par segment ?",d:'D1'},{q:"Sur la campagne Téléviseur à 75k€ — comment tu as fixé le tROAS, tu pars de quoi ?",d:'D2'},{q:"Tu peux me montrer une session de SQR en live sur une de ces campagnes ?",d:'D3'},{q:"Si une de ces campagnes sort de son tROAS pendant 3 jours, ton premier réflexe c'est quoi ?",d:'D2'}],
+   sigs:[{col:'#1B4FD8',txt:'<strong>SQR en live</strong> sur Aspiration ou Téléviseur — observer la fluidité dans l\'interface, pas seulement la réponse.'},{col:'#C47B1A',txt:'Un sénior décompose la nomenclature [0670]-SN-IKC-LT sans hésiter (code magasin, type, canal, durée de vie).'}],
+   obj:{s:'obj-eval',t:'Évalue D1 Structure, D2 Enchères, D3 Mots-clés. 50 min : aller à l\'essentiel, pas besoin d\'épuiser chaque campagne.'}},
+
+  {id:'B2',notes:"Priorité des campagnes : revoir.\nCannibalisation Boost CSS / Rayonnage : revoir.\nExclusion de KW : à travailler. Organiser workshop pour définir le procédé (criterion type notamment).\nMettre en place script alerting 0.",slot:2,time:'11h35',dur:'55 min',title:'Boulanger — Shopping',compte:'Shopping',themes:['Shopping','Flux','Enchères'],tags:['Shopping'],
+   sub:'122 campagnes Shopping + 5 PMax · 14,3M€ · Architecture flux, GMC, segmentation',
+   camps:[{n:'GS_Autre - CSS > Boost OP',m:'1,87M€ · tROAS',a:[{l:'CSS',c:'tag-blue'}]},{n:'[0670] - GS_PAM - Maison > Entretien Sol',m:'1,16M€ · tROAS',a:[]},{n:'GS_Autre - CSS > Flop marge',m:'647k€ · tROAS',a:[{l:'Custom label marge',c:'tag-blue'}]},{n:'[0620] - GS_PAM - Cuisine > Petit déjeuner',m:'529k€ · tROAS',a:[]}],
+   qs:[{q:"Sur ce compte Shopping, c'est quoi la logique entre GAM, PAM et les campagnes CSS ?",d:'D5'},{q:"La campagne CSS > Boost OP à 1,87M€ — c'est quoi le CSS ici, comment ça fonctionne ?",d:'D5'},{q:"La campagne 'Flop marge' utilise un custom label — comment le flux est configuré pour alimenter ce label ?",d:'D5'},{q:"Sur le GMC, tu as la main sur le flux ? Ton process quand tu vois une désapprobation produit ?",d:'D5'},{q:"Tu descends jusqu'à l'ID produit dans ta segmentation — sur quelles campagnes et pourquoi ?",d:'D5'}],
+   sigs:[{col:'#993C1D',txt:'<strong>59% du spend total est ici</strong> — c\'est le cœur. La maîtrise des custom labels, de la segmentation et du GMC se voit sur ce compte.'},{col:'#C47B1A',txt:'Demander d\'ouvrir une campagne Shopping et montrer la structure des product groups en live — segmentation ou "Tous les produits" ?'}],
+   obj:{s:'obj-eval',t:'Évalue D5 Shopping/PMax/Flux, D2 Enchères. Bloc à poids le plus fort — 14M€ de spend.'}},
+
+  {id:'B3',notes:"RSA : pas de révision des assets réguliers. A intégrer en routine via Variante d'annonces.\nPeu d'utilisation de fonctionnalités d'A/B Test. Explication : besoin de direction d'avoir des retours rapides sur l'impact.\nExtensions : idem.\nCannibalisation : pas de gestion actuellement.\nDéfinir stratégie budgétaire entre Text Ads, IKC, DSA, AI Max prochainement.\nCampagne Apple Search Ads : bloqué au niveau du moyen de paiement. Demande la CB de Maxime en direct.\nApp non prioritaire : voir Q3 + projet de recommander à setuper de la conv In-app via Appsflyer.\nSetup de langue des campagnes : uniquement français ? Voir AB test.\nBroad : peu de SQR associé.",slot:3,time:'13h45',dur:'55 min',title:'Boulanger — Text Ads + App',compte:'Text Ads',themes:['Annonces','Mots-clés','App'],tags:['Search'],
+   sub:'146 campagnes Search + 1 App · 6,55M€ · DSA, RSA, App Android',
+   camps:[{n:'DSA - Tous produits',m:'1,65M€ · tROAS · DSA',a:[]},{n:'[0710] - DSA - GAM - Lave-linge',m:'335k€ · tROAS',a:[]},{n:'[0710] - TXT - GEN - GAM - Lave linge',m:'267k€ · tROAS · Search générique',a:[]},{n:'App-Android',m:'274k€ · CPA cible',a:[{l:'274k€ sans conv value',c:'tag-red'}]}],
+   qs:[{q:"La DSA 'Tous produits' à 1,65M€ — quelles cibles de pages et quelles exclusions ?",d:'D3'},{q:"Tu as des DSA et des Search génériques sur les mêmes catégories — comment tu gères la cannibalisation ?",d:'D3'},{q:"Tu peux m'ouvrir une RSA et me dire comment tu juges sa qualité ?",d:'D4'},{q:"La campagne App-Android à 274k€ — c'est quoi l'objectif, comment le tracking est configuré ?",d:'D7'},{q:"Les 0 conversions value sur App, c'est normal ou c'est un angle mort ?",d:'D7'}],
+   sigs:[{col:'#C0392B',txt:'<strong>App-Android : 274k€, 0 valeur de conversion</strong> — soit tracking en actions non monétaires (installs), soit angle mort. Observer comment Maxime diagnostique.'},{col:'#C47B1A',txt:'La coexistence DSA + Search générique sur les mêmes catégories est un vrai sujet de segmentation.'}],
+   obj:{s:'obj-eval',t:'Évalue D3 Mots-clés/DSA, D4 Annonces/RSA, D7 Tracking (premier signal App).'}},
+
+  {id:'B4',notes:"Trade = obligatoirement du Shopping.\nCheck des customizer / balise keyword sur l'ensemble des comptes.",slot:3,time:'14h40',dur:'65 min',title:'Boulanger — Trade & PMax',compte:'Trade',themes:['PMax','Enchères'],tags:['PMax','Shopping'],
+   sub:'16 campagnes comarketing + PMax · Thèmes : PMax, comarketing, Max Clics',
+   camps:[{n:'165 - Comarketing - GOOGLE LANCEMENT P10A',m:'45k€ · Max valeur · PMax',a:[]},{n:'220 - Comarketing - SAMSUNG S26 LANCEMENT',m:'20k€ · tROAS · Shopping',a:[]},{n:'838 - BEATS Plan Promo Casques Mai',m:'10k€ · Max Clics',a:[{l:'Max Clics',c:'tag-orange'}]},{n:'500 - ECOVACS lancement X12 Omni',m:'9k€ · Max Clics',a:[{l:'Max Clics',c:'tag-orange'}]}],
+   qs:[{q:"Sur la PMax GOOGLE P10A à 45k€ — tu as des asset groups séparés par thématique ?",d:'D5'},{q:"Pour les campagnes comarketing, qui décide de la stratégie d'enchères — toi ou le partenaire trade ?",d:'D5'},{q:"Les campagnes BEATS et ECOVACS sont en 'Maximiser les clics' — demande du trade ou choix de ta part ?",d:'D2'},{q:"Sur les PMax, quels rapports tu regardes pour savoir ce qui performe — tu vas où concrètement ?",d:'D5'},{q:"Est-ce que tu as configuré l'exclusion de marques sur les PMax ? Et l'objectif nouveaux clients ?",d:'D5'},{q:"Comment tu gères la cannibalisation entre une PMax et une campagne Shopping Standard sur les mêmes produits ?",d:'D5'}],
+   sigs:[{col:'#C0392B',txt:'<strong>Max Clics sur BEATS et ECOVACS</strong> — soit contrainte partenaire, soit défaut. La réponse de Maxime est déterminante.'},{col:'#C47B1A',txt:'Un sénior va dans les search themes, asset reports et audience insights sur PMax — pas seulement le ROAS global.'}],
+   obj:{s:'obj-eval',t:'Évalue D5 PMax (profondeur), D2 Enchères (justification Max Clics). C\'est ici que le gap PMax se mesure le mieux.'}},
+
+  {id:'B5',notes:"Sujet le moins à l'aise.\nTracking déjà en place et peu remis en cause.\nPréparer un meeting avec les webanalystes + nos équipes tracking pour un check de fiabilité.",slot:3,time:'15h45',dur:'55 min',title:'Tracking, Consent Mode & mesure',compte:'Global',themes:['Tracking'],tags:['Tracking'],
+   sub:'Thème transversal — interface tracking Google Ads + Tag Assistant',
+   camps:[{n:'App-Android — reprise diagnostic',m:'274k€ · tracking à explorer',a:[{l:'Diagnostic live',c:'tag-blue'}]},{n:'Suivi des conversions — vue compte',m:'Actions de conversion configurées',a:[]},{n:'Consent Mode — Tag Assistant',m:'Vérification sur Boulanger.fr',a:[]}],
+   qs:[{q:"Comment le tracking conversions est implémenté — balise native, import GA4, GTM ? C'est toi qui as mis ça en place ?",d:'D7'},{q:"Tu peux m'ouvrir le suivi des conversions et m'expliquer chaque action configurée ?",d:'D7'},{q:"Si tu vois une chute de -40% des conversions du jour au lendemain, tu vérifies quoi en premier ?",d:'D7'},{q:"Le Consent Mode v2, il est implémenté sur Boulanger.fr ? Tu sais comment vérifier ça ?",d:'D7'},{q:"Les conversions améliorées — est-ce qu'elles sont configurées, et pourquoi c'est important ?",d:'D7'},{q:"Tu utilises quel modèle d'attribution — data-driven ou autre ? Pourquoi ce choix ?",d:'D7'}],
+   sigs:[{col:'#C0392B',txt:'<strong>Faire le diagnostic App-Android en live</strong> : observer l\'ordre de recherche (tracking → GA4 → objectifs → reporting). La méthode révèle plus que la réponse.'},{col:'#C47B1A',txt:'Consent Mode v2 et conversions améliorées sont dans le contrat. Un gap ici est actionnable dès la semaine 1.'},{col:'#1B4FD8',txt:'Demander d\'ouvrir Tag Assistant sur Boulanger.fr — voir si Maxime sait l\'utiliser et ce qu\'il y lit.'}],
+   obj:{s:'obj-eval',t:'Évalue D7 Tracking complet, D9 Tracking avancé. Bloc le plus technique de l\'après-midi.'}},
+
+  {id:'B6',notes:"Pas un sujet chez André / Maxime.",slot:3,time:'16h40',dur:'20 min',title:'Magasins & YouTube',compte:'Magasins',themes:['Demand Gen','Audiences'],tags:['PMax','Stratégie'],
+   sub:'Focus local PMax + Demand Gen · 20 min ciblées',
+   camps:[{n:'Pmax Locale F204 — Nantes Rezé',m:'5,5k€ · Max Conv · PMax locale',a:[]},{n:'F217 - Magasin local — CAEN',m:'2,6k€ · Max Conv · Search',a:[]},{n:'MOB - Air Fryer - Vidéo Longue - DG',m:'950€ · Demand Gen',a:[]}],
+   qs:[{q:"Les PMax locales Magasins — comment tu les paramètres, tu as une logique par zone géographique ?",d:'D5'},{q:"Sur la campagne Demand Gen Air Fryer — comment tu mesures la performance, tu regardes quoi ?",d:'D13'},{q:"Tu utilises des audiences sur les campagnes Search Magasins — observation ou ciblage ?",d:'D6'}],
+   sigs:[{col:'#1B4FD8',txt:'Bloc volontairement court — se concentrer sur la logique PMax locale et la compréhension Demand Gen. Le reste (Lokeo, YouTube) peut être abordé en plan de progression si besoin.'},{col:'#0F6E56',txt:'Demand Gen est récent — la question sur la mesure de performance est un test de veille produit rapide.'}],
+   obj:{s:'obj-eval',t:'20 min chrono. Évalue D5 (PMax locale), D6 Audiences, D13 Demand Gen. Transitionner vite vers la clôture.'}},
+
+  {id:'B7',notes:"Priorité 1 : Cleaning / Sanity Check (exclusions / paramétrages globaux des comptes : zone, langue, exclusions).\nPriorité 2 : Personnalisation des extensions.\nPriorité 3 : Routine SQR à intégrer et appuyer via outil IA.\nMicrosoft Ads : à développer sur la marge. Bonnes performances actuelles en isolant les budgets par campagne.",slot:3,time:'17h00',dur:'30 min',title:'Clôture stratégique',compte:'Global',themes:['Stratégie'],tags:['Stratégie'],
+   sub:'Priorisation · auto-diagnostic · plan de progression · 17h00 → 17h30',
+   camps:[{n:'Vue MCC globale — Auction Insights',m:'Analyse concurrentielle',a:[]}],
+   qs:[{q:"On a passé la journée ensemble — si tu devais prioriser 5 chantiers dans les 30 prochains jours, ce serait quoi et dans quel ordre ?",d:'D8'},{q:"On a vu beaucoup de choses aujourd'hui — qu'est-ce qui t'a surpris ou que tu ne savais pas ?",d:'D8'},{q:"Tu peux m'ouvrir l'Auction Insights sur une catégorie principale — qu'est-ce que tu lis là-dedans ?",d:'D8'},{q:"Microsoft Ads est dans le scope — comment tu le pilotes, import Google Ads ou optimisation indépendante ?",d:'D8'},{q:"Comment tu fais ta veille SEA au quotidien — tu as des sources que tu suis ?",d:'D8'}],
+   sigs:[{col:'#C0392B',txt:'<strong>La priorisation des 5 chantiers</strong> est le test de maturité stratégique final. Un sénior priorise par impact business, pas par facilité d\'exécution.'},{col:'#C47B1A',txt:'La Q2 ("qu\'est-ce qui t\'a surpris") évalue la capacité d\'auto-diagnostic — indispensable pour que le plan de progression soit bien reçu.'},{col:'#1B4FD8',txt:'30 min bien utilisées permettent de poser les bases de la roadmap commune avec Maxime avant le debrief André.'}],
+   obj:{s:'obj-warn',t:'Formuler les 3 axes prioritaires avec Maxime comme une "roadmap commune" — pas un verdict. Ce qu\'il dit ici nourrit directement le plan de progression.'}},
+];
+
+const domains=[
+  {id:'D1',label:'Structure & architecture',col:'#7B6FD6',items:[{t:'Nomenclature et nommage',l:'m'},{t:'Segmentation des campagnes',l:'a'},{t:'Budgets partagés vs individuels',l:'m'},{t:'Organisation des adgroups',l:'m'},{t:'Navigation MCC (16 sous-comptes)',l:'a'}]},
+  {id:'D2',label:'Enchères & Smart Bidding',col:'#C47B1A',items:[{t:'Mécanismes tROAS / tCPA',l:'e'},{t:'CPC manuel — usage justifié',l:'m'},{t:'Calibrage des objectifs',l:'e'},{t:'Diagnostic phases d\'apprentissage',l:'e'},{t:'Ajustements de valeur',l:'a'},{t:'Hiérarchisation conversions',l:'a'}]},
+  {id:'D3',label:'Mots-clés & SQR',col:'#4A9E2F',items:[{t:'Routine SQR quotidienne',l:'m'},{t:'Types de correspondance',l:'m'},{t:'Transition Broad Match + AI Max',l:'a'},{t:'Listes de négatifs structurées',l:'m'},{t:'DSA — configuration et exclusions',l:'a'}]},
+  {id:'D4',label:'Annonces & assets',col:'#2175BF',items:[{t:'RSA — structure et qualité',l:'m'},{t:'Extensions / Assets (tous types)',l:'m'},{t:'Ad Customizer, fonction IF',l:'a'},{t:'Variante d\'annonces natif',l:'a'},{t:'Score de qualité (QS)',l:'e'},{t:'Rotation et méthode de diffusion',l:'m'}]},
+  {id:'D5',label:'Shopping, PMax & flux',col:'#B03B1A',items:[{t:'Architecture Shopping Standard',l:'a'},{t:'PMax — configuration complète',l:'a'},{t:'PMax — exclusion marques & nouveaux clients',l:'a'},{t:'PMax — lecture insights',l:'e'},{t:'GMC — diagnostics & règles de flux',l:'a'},{t:'Custom labels & ID produit',l:'a'},{t:'Stratégie Shopping vs PMax',l:'e'}]},
+  {id:'D6',label:'Audiences & ciblage',col:'#0E7A5E',items:[{t:'Observation vs ciblage',l:'m'},{t:'Remarketing RLSA',l:'m'},{t:'Customer Match & conformité RGPD',l:'a'},{t:'Signaux first-party',l:'a'},{t:'Stratégie audience cross-réseau',l:'e'}]},
+  {id:'D7',label:'Tracking & mesure',col:'#A0305A',items:[{t:'Implémentation tracking conversions',l:'m'},{t:'Consent Mode v2',l:'a'},{t:'Conversions améliorées',l:'a'},{t:'Suivi côté serveur (S2S)',l:'c'},{t:'Exclusions de données',l:'a'},{t:'Modèle d\'attribution data-driven',l:'e'},{t:'Analyse GA4 & post-clic',l:'a'}]},
+  {id:'D8',label:'Stratégie, outils & reporting',col:'#5F5E5A',items:[{t:'Lecture business des KPIs',l:'e'},{t:'Impression Share — diagnostic',l:'a'},{t:'Expérimentations Google Ads',l:'a'},{t:'Scripts et règles automatisées',l:'c'},{t:'Piano Analytics',l:'e'},{t:'Google Ads Editor',l:'m'},{t:'Looker Studio / reporting client',l:'a'},{t:'Microsoft Ads — maîtrise',l:'m'},{t:'Recommandations proactives',l:'e'}]},
+];
+const LV={na:{label:'Non acquis',cls:'lv-na'},c:{label:'Connaissance',cls:'lv-c'},a:{label:'Autonomie',cls:'lv-a'},m:{label:'Maîtrise',cls:'lv-m'},e:{label:'Expertise',cls:'lv-e'}};
+const itemLevels = JSON.parse(localStorage.getItem('maxime_eval_itemLevels')||'{}');
+const scores=[3, 3, 2, 2, 3, 3, 1, 3];
+const doneBlocs=new Set();
+let activeFilter='all';
+let radarChart;
+
+const SLOTS=[
+  {num:1,label:'Slot 1',time:'9h30 → 10h00',dur:30},
+  {num:2,label:'Slot 2',time:'10h45 → 12h30',dur:105},
+  {num:3,label:'Slot 3',time:'13h45 → 17h30',dur:225},
+];
+
+function showPage(p,btn){
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');btn.classList.add('active');
+  if(p==='radar'&&!radarChart)initRadar();
+}
+
+function setFilter(f,btn){
+  activeFilter=f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');renderPlanning();
+}
+
+function renderPlanning(){
+  const con=document.getElementById('planning-container');con.innerHTML='';
+  let qt=0,lastSlot=0;
+  blocs.forEach((b,bi)=>{
+    qt+=b.qs.length;
+    const vis=activeFilter==='all'||b.tags.includes(activeFilter);
+    // Séparateur de slot
+    if(b.slot!==lastSlot&&(activeFilter==='all')){
+      const sl=SLOTS[b.slot-1];
+      const sep=document.createElement('div');sep.className='slot-sep';
+      sep.innerHTML=`<div class="slot-sep-line"></div><span class="slot-sep-label">${sl.label}</span><span class="slot-sep-time">${sl.time} · ${sl.dur} min</span><div class="slot-sep-line"></div>`;
+      con.appendChild(sep);lastSlot=b.slot;
+    }
+    const cm=CM[b.compte]||CM['Global'];
+    const thB=b.themes.map(t=>{const m=TH[t]||{bg:'#eee',c:'#333'};return`<span class="badge" style="background:${m.bg};color:${m.c}">${t}</span>`;}).join('');
+    const el=document.createElement('div');
+    el.className='bloc'+(doneBlocs.has(bi)?' done':'')+(vis?'':' hidden');el.id='b-'+bi;
+    const hdr=document.createElement('div');hdr.className='bloc-header';
+    hdr.innerHTML=`<div class="bloc-time">${b.time}<div class="bloc-time-dur">${b.dur}</div></div>
+      <div><div class="bloc-title-row"><span class="bloc-title">${b.title}</span><span class="badge" style="background:${cm.bg};color:${cm.c}">${b.compte}</span>${thB}</div><div class="bloc-sub">${b.sub}</div></div>
+      <div class="bloc-controls"><button class="check-btn ${doneBlocs.has(bi)?'checked':''}" id="chk-${bi}" onclick="event.stopPropagation();toggleDone(${bi})">${doneBlocs.has(bi)?'✓':''}</button>
+      <div class="chevron" id="chv-${bi}"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>`;
+    hdr.addEventListener('click',()=>toggleBody(bi));
+    const body=document.createElement('div');body.className='bloc-body';body.id='bd-'+bi;
+    if(b.camps.length){const s=document.createElement('div');s.className='body-section';s.innerHTML=`<div class="section-head">🎯 Campagnes à analyser en live</div>`;b.camps.forEach(c=>{const r=document.createElement('div');r.className='camp-row';r.innerHTML=`<span class="camp-name">${c.n}</span><span class="camp-meta">${c.m}</span>${c.a.map(a=>`<span class="tag ${a.c}">${a.l}</span>`).join('')}`;s.appendChild(r);});body.appendChild(s);}
+    if(b.qs.length){const s=document.createElement('div');s.className='body-section';s.innerHTML=`<div class="section-head">💬 Questions copilote</div><div class="q-list"></div>`;const ql=s.querySelector('.q-list');b.qs.forEach((q,i)=>{const r=document.createElement('div');r.className='q-row';r.innerHTML=`<span class="q-num">${String(i+1).padStart(2,'0')}</span><span class="q-text">${q.q}</span>${q.d?`<span class="q-tag">${q.d}</span>`:''}`;ql.appendChild(r);});body.appendChild(s);}
+    if(b.sigs.length){const s=document.createElement('div');s.className='body-section';s.innerHTML=`<div class="section-head">⚡ Signaux & ce que ça révèle</div><div class="signal-list"></div>`;const sl=s.querySelector('.signal-list');b.sigs.forEach(sig=>{const r=document.createElement('div');r.className='signal-row';r.innerHTML=`<div class="signal-dot" style="background:${sig.col}"></div><span class="signal-text">${sig.txt}</span>`;sl.appendChild(r);});body.appendChild(s);}
+    if(b.obj){const s=document.createElement('div');s.className='body-section';s.innerHTML=`<div class="obj-box ${b.obj.s}">${b.obj.t}</div>`;body.appendChild(s);}
+    const ns=document.createElement('div');ns.className='notes-section';
+    const notesEscaped = (b.notes||'').replace(/</g,'&lt;');
+    ns.innerHTML=`<div class="notes-label">Notes — ${b.title}</div><textarea id="nt-${bi}" placeholder="Observations sur ce bloc…">${notesEscaped}</textarea>`;body.appendChild(ns);
+    el.appendChild(hdr);el.appendChild(body);con.appendChild(el);
+  });
+  document.getElementById('stat-q').textContent=qt;
+  if (typeof applyBlocPrefills === 'function') applyBlocPrefills();
+}
+
+function toggleBody(bi){const bd=document.getElementById('bd-'+bi),cv=document.getElementById('chv-'+bi);if(!bd)return;const o=bd.classList.contains('open');bd.classList.toggle('open',!o);cv&&cv.classList.toggle('open',!o);}
+function toggleDone(bi){doneBlocs.has(bi)?doneBlocs.delete(bi):doneBlocs.add(bi);updateStats();const chk=document.getElementById('chk-'+bi);if(chk){chk.classList.toggle('checked',doneBlocs.has(bi));chk.textContent=doneBlocs.has(bi)?'✓':'';}document.getElementById('b-'+bi)?.classList.toggle('done',doneBlocs.has(bi));saveState();}
+function updateStats(){const n=doneBlocs.size,tot=blocs.length,pct=Math.round(n/tot*100);document.getElementById('stat-blocs').textContent=n+'/'+tot;document.getElementById('stat-pct').textContent=pct+'%';document.getElementById('prog-fill').style.width=pct+'%';}
+
+function initRadar(){
+  radarChart=new Chart(document.getElementById('radarChart'),{type:'radar',
+    data:{labels:domains.map(d=>d.label),datasets:[
+      {label:'Sénior attendu',data:new Array(domains.length).fill(4),borderColor:'#B5D4F4',backgroundColor:'rgba(181,212,244,0.1)',borderWidth:1.5,borderDash:[4,3],pointRadius:0},
+      {label:'Maxime Sion',data:[...scores],borderColor:'#378ADD',backgroundColor:'rgba(55,138,221,0.13)',borderWidth:2,pointBackgroundColor:domains.map(d=>d.col),pointRadius:5,pointHoverRadius:7}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+' : '+(ctx.raw||'—')+'/5'}}},
+      scales:{r:{min:0,max:5,ticks:{stepSize:1,font:{size:10},backdropColor:'transparent'},pointLabels:{font:{size:11}}}}}
+  });
+  buildDomainPanel();
+}
+function buildDomainPanel(){
+  const panel=document.getElementById('domains-panel');panel.innerHTML='';
+  domains.forEach((d,di)=>{
+    const el=document.createElement('div');el.className='d-row';el.id='dr-'+di;
+    const stars=[1,2,3,4,5].map(v=>`<button class="star" onclick="event.stopPropagation();setScore(${di},${v})">☆</button>`).join('');
+    const items=d.items.map((it,ii)=>{
+      const itemKey=di+'-'+ii;
+      const currentLevel = itemLevels[itemKey] || it.l;
+      const options=['na','c','a','m','e'].map(lvKey=>{
+        const lv=LV[lvKey];
+        const sel=lvKey===currentLevel?'selected':'';
+        return `<option value="${lvKey}" ${sel}>${lv.label}</option>`;
+      }).join('');
+      return `<div class="d-item"><div class="d-item-dot" style="background:${d.col}"></div><span class="d-item-txt">${it.t}</span><select class="d-item-select ${LV[currentLevel].cls}" id="lvsel-${itemKey}" onchange="setItemLevel('${itemKey}', this)">${options}</select></div>`;
+    }).join('');
+    el.innerHTML=`<div class="d-header" onclick="toggleDetail(${di})"><div class="d-color" style="background:${d.col}"></div><span class="d-label">${d.id} — ${d.label}</span><span class="d-score" id="ds-${di}">—/5</span><div class="stars" id="st-${di}">${stars}</div></div>
+      <div class="d-bar"><div class="d-bar-fill" id="db-${di}" style="width:0%;background:${d.col}"></div></div>
+      <div class="d-detail" id="dd-${di}"><div class="d-detail-head">${d.items.length} compétences évaluées</div><div class="d-items">${items}</div></div>`;
+    panel.appendChild(el);
+  });
+}
+function setScore(di,val){scores[di]=val;updateRadar();renderDomainRow(di);saveState();}
+function setItemLevel(itemKey, selectEl){
+  itemLevels[itemKey] = selectEl.value;
+  selectEl.className = 'd-item-select ' + LV[selectEl.value].cls;
+  saveState();
+}
+function renderDomainRow(di){
+  const s=scores[di],cols=['','#C0392B','#C47B1A','#D4851A','#185FA5','#3B6D11'];
+  const ds=document.getElementById('ds-'+di);if(ds){ds.textContent=s?s+'/5':'—/5';ds.style.color=cols[s]||'var(--text3)';}
+  const db=document.getElementById('db-'+di);if(db)db.style.width=(s/5*100)+'%';
+  document.querySelectorAll(`#st-${di} .star`).forEach((btn,i)=>{btn.classList.toggle('on',i<s);btn.textContent=i<s?'★':'☆';});
+}
+function updateRadar(){
+  if(!radarChart)return;
+  radarChart.data.datasets[1].data=[...scores];radarChart.update('active');
+  const f=scores.filter(s=>s>0),avg=f.length?(f.reduce((a,b)=>a+b,0)/f.length).toFixed(1):'—';
+  document.getElementById('score-big').textContent=avg;document.getElementById('stat-score').textContent=avg;
+}
+function toggleDetail(di){const dd=document.getElementById('dd-'+di),dr=document.getElementById('dr-'+di);const o=dd.classList.contains('open');document.querySelectorAll('.d-detail').forEach(d=>d.classList.remove('open'));document.querySelectorAll('.d-row').forEach(r=>r.classList.remove('active'));if(!o){dd.classList.add('open');dr.classList.add('active');}}
+
+function exportAll(){
+  const lines=['ÉVALUATION SEA — MAXIME SION',`Date : ${new Date().toLocaleDateString('fr-FR')}`,'Compte : Boulanger','9h30 → 17h30 · 6h effectives',''];
+  lines.push('\n══════════════════\nPLANNING\n══════════════════');
+  let ls=0;
+  blocs.forEach((b,bi)=>{
+    if(b.slot!==ls){const sl=SLOTS[b.slot-1];lines.push(`\n── ${sl.label} : ${sl.time} ──`);ls=b.slot;}
+    lines.push(`\n[${b.id}] ${b.time} (${b.dur}) — ${b.title}`);
+    if(b.camps.length){lines.push('Campagnes :');b.camps.forEach(c=>lines.push(`  · ${c.n} — ${c.m}`));}
+    if(b.qs.length){lines.push('Questions :');b.qs.forEach((q,i)=>lines.push(`  ${i+1}. ${q.q}`));}
+    const note=document.getElementById('nt-'+bi)?.value;if(note)lines.push(`Notes :\n${note}`);
+    if(doneBlocs.has(bi))lines.push('[✓ Complété]');
+  });
+  const f=scores.filter(s=>s>0),avg=f.length?(f.reduce((a,b)=>a+b,0)/f.length).toFixed(1):'—';
+  lines.push('\n══════════════════\nSCORES RADAR\n══════════════════');
+  domains.forEach((d,i)=>{const s=scores[i];lines.push(`${d.id} ${d.label.padEnd(32)} ${'█'.repeat(s||0)}${'░'.repeat(5-(s||0))}  ${s||'—'}/5`);});
+  lines.push(`\nScore global : ${avg}/5`);
+  [{id:'rn-forts',l:'POINTS FORTS'},{id:'rn-axes',l:'AXES DE PROGRESSION'},{id:'rn-comport',l:'OBSERVATIONS'},{id:'rn-next',l:'PROCHAINES ÉTAPES'}].forEach(f=>{const v=document.getElementById(f.id)?.value;if(v)lines.push(`\n${f.l}\n${v}`);});
+  lines.push('\n══════════════════\nONBOARDING — NOTES PAR SECTION\n══════════════════');
+  document.querySelectorAll('.ob-section').forEach((sec,si)=>{
+    const title=sec.querySelector('.ob-section-title')?.textContent||('Section '+si);
+    const note=document.getElementById('obnote-'+si)?.value;
+    if(note) lines.push(`\n${title}\n${note}`);
+  });
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([lines.join('\n')],{type:'text/plain;charset=utf-8'}));
+  a.download=`evaluation_maxime_sion_${new Date().toISOString().slice(0,10)}.txt`;a.click();
+}
+function resetAll(){
+  doneBlocs.clear();scores.fill(0);updateStats();
+  if(radarChart){radarChart.data.datasets[1].data=[...scores];radarChart.update();}
+  document.getElementById('score-big').textContent='—';document.getElementById('stat-score').textContent='—';
+  domains.forEach((_,i)=>renderDomainRow(i));renderPlanning();
+  ['rn-forts','rn-axes','rn-comport','rn-next'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+}
+
+function applyBlocPrefills(){
+  document.querySelectorAll('[data-prefill]').forEach(el => {
+    if (!el.value) el.value = el.getAttribute('data-prefill').replace(/\\n/g, '\n');
+  });
+}
+
+renderPlanning();updateStats();
+applyBlocPrefills();
+
+document.querySelectorAll('[data-prefill]').forEach(el => {
+  if (!el.value) el.value = el.getAttribute('data-prefill').replace(/\\n/g, '\n');
+});
+updateRadar();
+
+
+const OB_TOTALS = [7, 5, 11, 5, 8, 12, 9, 7, 6, 6, 11, 10, 10, 6];
+const OB_TOTAL = 113;
+const obChecked = JSON.parse(localStorage.getItem('maxime_eval_obChecked')||'{}');
+
+function toggleSection(si) {
+  const items = document.getElementById('obitems-' + si);
+  const chv = document.getElementById('obchv-' + si);
+  if (!items) return;
+  const open = items.classList.contains('open');
+  items.classList.toggle('open', !open);
+  chv && chv.classList.toggle('open', !open);
+}
+
+function toggleItem(si, ii) {
+  const key = si + '-' + ii;
+  obChecked[key] = !obChecked[key];
+  const item = document.getElementById('obi-' + key);
+  const cb = document.getElementById('obcb-' + key);
+  if (item) item.classList.toggle('checked', obChecked[key]);
+  if (cb) cb.textContent = obChecked[key] ? '✓' : '';
+  updateObStats();
+  saveState();
+}
+
+function updateObStats() {
+  const total = OB_TOTAL;
+  const done = Object.values(obChecked).filter(Boolean).length;
+  const pct = Math.round(done / total * 100);
+  const el = document.getElementById('ob-done-count');
+  const pelPct = document.getElementById('ob-pct');
+  const fill = document.getElementById('ob-prog-fill');
+  if (el) el.textContent = done;
+  if (pelPct) pelPct.textContent = pct + '%';
+  if (fill) fill.style.width = pct + '%';
+  // Par section
+  OB_TOTALS.forEach((tot, si) => {
+    let secDone = 0;
+    for (let ii = 0; ii < tot; ii++) {
+      if (obChecked[si + '-' + ii]) secDone++;
+    }
+    const pctEl = document.getElementById('obpct-' + si);
+    if (pctEl) pctEl.textContent = Math.round(secDone / tot * 100) + '%';
+  });
+}
+
+function resetOnboarding() {
+  Object.keys(obChecked).forEach(k => { obChecked[k] = false; });
+  document.querySelectorAll('.ob-item').forEach(el => el.classList.remove('checked'));
+  document.querySelectorAll('.ob-checkbox').forEach(el => el.textContent = '');
+  document.querySelectorAll('.ob-section-note textarea').forEach(el => el.value = '');
+  updateObStats();
+}
+
+// ═══════════════════════════════════════════
+// SYSTÈME DE SAUVEGARDE AUTOMATIQUE (localStorage)
+// ═══════════════════════════════════════════
+const STORAGE_PREFIX = 'maxime_eval_';
+
+function saveState() {
+  try {
+    localStorage.setItem(STORAGE_PREFIX + 'scores', JSON.stringify(scores));
+    localStorage.setItem(STORAGE_PREFIX + 'itemLevels', JSON.stringify(itemLevels));
+    localStorage.setItem(STORAGE_PREFIX + 'obChecked', JSON.stringify(obChecked));
+    localStorage.setItem(STORAGE_PREFIX + 'doneBlocs', JSON.stringify([...doneBlocs]));
+
+    // Notes radar (4 champs)
+    const radarNotes = {};
+    ['rn-forts','rn-axes','rn-comport','rn-next'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) radarNotes[id] = el.value;
+    });
+    localStorage.setItem(STORAGE_PREFIX + 'radarNotes', JSON.stringify(radarNotes));
+
+    // Notes par bloc planning (nt-0 à nt-N)
+    const blocNotes = {};
+    blocs.forEach((b, bi) => {
+      const el = document.getElementById('nt-' + bi);
+      if (el) blocNotes[bi] = el.value;
+    });
+    localStorage.setItem(STORAGE_PREFIX + 'blocNotes', JSON.stringify(blocNotes));
+
+    // Notes par section onboarding (obnote-0 à obnote-N)
+    const obNotes = {};
+    document.querySelectorAll('[id^="obnote-"]').forEach(el => {
+      const idx = el.id.replace('obnote-', '');
+      obNotes[idx] = el.value;
+    });
+    localStorage.setItem(STORAGE_PREFIX + 'obNotes', JSON.stringify(obNotes));
+
+    const indicator = document.getElementById('save-indicator');
+    if (indicator) {
+      indicator.textContent = '✓ Enregistré ' + new Date().toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+      indicator.style.opacity = '1';
+      clearTimeout(window._saveIndicatorTimeout);
+      window._saveIndicatorTimeout = setTimeout(() => { indicator.style.opacity = '0.4'; }, 2000);
+    }
+  } catch(e) {
+    console.error('Erreur de sauvegarde locale :', e);
+  }
+}
+
+function loadState() {
+  try {
+    const savedScores = localStorage.getItem(STORAGE_PREFIX + 'scores');
+    if (savedScores) {
+      const parsed = JSON.parse(savedScores);
+      parsed.forEach((v, i) => { scores[i] = v; });
+    }
+
+    const savedDone = localStorage.getItem(STORAGE_PREFIX + 'doneBlocs');
+    if (savedDone) {
+      JSON.parse(savedDone).forEach(bi => doneBlocs.add(bi));
+    }
+
+    // Notes radar
+    const radarNotes = JSON.parse(localStorage.getItem(STORAGE_PREFIX + 'radarNotes') || '{}');
+    Object.keys(radarNotes).forEach(id => {
+      const el = document.getElementById(id);
+      if (el && radarNotes[id]) el.value = radarNotes[id];
+    });
+
+    // Notes par bloc planning
+    const blocNotes = JSON.parse(localStorage.getItem(STORAGE_PREFIX + 'blocNotes') || '{}');
+    Object.keys(blocNotes).forEach(bi => {
+      if (blocs[bi] && blocNotes[bi]) blocs[bi].notes = blocNotes[bi];
+    });
+
+    // Notes onboarding (appliquées après le rendu, voir applyObNotes)
+    window._savedObNotes = JSON.parse(localStorage.getItem(STORAGE_PREFIX + 'obNotes') || '{}');
+  } catch(e) {
+    console.error('Erreur de chargement local :', e);
+  }
+}
+
+function applyObNotes() {
+  if (!window._savedObNotes) return;
+  Object.keys(window._savedObNotes).forEach(idx => {
+    const el = document.getElementById('obnote-' + idx);
+    if (el && window._savedObNotes[idx]) el.value = window._savedObNotes[idx];
+  });
+}
+
+function resetAllStorage() {
+  if (!confirm('Effacer toutes les données enregistrées localement (scores, notes, cases cochées) ? Cette action est irréversible.')) return;
+  Object.keys(localStorage).filter(k => k.startsWith(STORAGE_PREFIX)).forEach(k => localStorage.removeItem(k));
+  location.reload();
+}
+
+// Charger l'état sauvegardé avant le premier rendu
+loadState();
+
+// Attacher la sauvegarde automatique sur tous les champs texte (notes)
+document.addEventListener('input', (e) => {
+  if (e.target.tagName === 'TEXTAREA') {
+    clearTimeout(window._autoSaveTimeout);
+    window._autoSaveTimeout = setTimeout(saveState, 500);
+  }
+});
+
+// Réappliquer les niveaux d'items et les notes onboarding une fois le DOM prêt
+setTimeout(() => {
+  applyObNotes();
+  if (typeof buildDomainPanel === 'function' && document.getElementById('domains-panel')) {
+    buildDomainPanel();
+    updateRadar();
+  }
+}, 50);
+</script>
+</body>
+</html>
